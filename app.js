@@ -89,9 +89,19 @@ async function loadStock(){
 }
 window.stockFinish=async id=>{let now=nowIso();await sb.from('tqr_units').update({status:'COMPLETED',current_stage:'TO FINISHING / COMPLETED',completed_at:now}).eq('id',id);await sb.from('tqr_stage_history').insert({unit_id:id,action:'EXIT',stage:'TO FINISHING FROM STOCK',result:'PASS'});toast('Released from stock — KPI updated');loadStock();refresh()}
 
-function generateQrBatch(){let qty=Math.max(1,Math.min(100,Number($('#qrQty').value)||1)),stamp=new Date().toISOString().replace(/\D/g,'').slice(0,14),batch=$('#qrBatch');batch.innerHTML='';for(let i=1;i<=qty;i++){let code=`TQR-${stamp}-${String(i).padStart(3,'0')}`,card=document.createElement('div');card.className='qr-card';card.innerHTML=`<div class="qr-canvas"></div><b>${code}</b>`;batch.appendChild(card);new QRCode(card.querySelector('.qr-canvas'),{text:code,width:150,height:150,correctLevel:QRCode.CorrectLevel.M})}$('#qrBatchInfo').textContent=`Generated ${qty} embedded QR code(s). These are not received into tracking until first scan.`}
+function generateQrBatch(){let qty=Math.max(1,Math.min(100,Number($('#qrQty').value)||1)),stamp=new Date().toISOString().replace(/\D/g,'').slice(0,14),batch=$('#qrBatch');batch.innerHTML='';for(let i=1;i<=qty;i++){let code=`TQR-${stamp}-${String(i).padStart(3,'0')}`,card=document.createElement('div');card.className='qr-card';card.innerHTML=`<div class="qr-canvas"></div><b>${code}</b>`;batch.appendChild(card);let directUrl=`${location.origin}${location.pathname}?qr=${encodeURIComponent(code)}`;new QRCode(card.querySelector('.qr-canvas'),{text:directUrl,width:150,height:150,correctLevel:QRCode.CorrectLevel.M})}$('#qrBatchInfo').textContent=`Generated ${qty} embedded QR code(s). These are not received into tracking until first scan.`}
 
 async function loadTimers(){let t=await getTimers();$('#timerCore').value=t.core_heatrun_seconds;$('#timerBooster').value=t.booster_heatrun_seconds;$('#timerSts').value=t.sts_heatrun_seconds;$('#timerStatus').textContent='Current shared pilot timer values loaded.'}
 async function saveTimers(){let vals={core_heatrun_seconds:Number($('#timerCore').value),booster_heatrun_seconds:Number($('#timerBooster').value),sts_heatrun_seconds:Number($('#timerSts').value)};if(Object.values(vals).some(v=>!Number.isFinite(v)||v<5))return toast('Minimum timer is 5 seconds');let rows=Object.entries(vals).map(([setting_key,setting_value])=>({setting_key,setting_value}));let {error}=await sb.from('tqr_settings').upsert(rows,{onConflict:'setting_key'});if(error)return toast(error.message);$('#timerStatus').textContent='Saved — all pilot devices will use these timer values.';toast('Pilot timers saved')}
 
-sb.channel('tqr-live').on('postgres_changes',{event:'*',schema:'public',table:'tqr_units'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tqr_bay_occupancy'},refresh).subscribe();refresh();
+sb.channel('tqr-live').on('postgres_changes',{event:'*',schema:'public',table:'tqr_units'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tqr_bay_occupancy'},refresh).subscribe();
+async function bootFromQrLink(){
+  await refresh();
+  const q=new URLSearchParams(location.search).get('qr');
+  if(!q)return;
+  const scanBtn=document.querySelector('nav button[data-page="scan"]');
+  if(scanBtn)scanBtn.click();
+  $('#qr').value=q;
+  await openQR();
+}
+bootFromQrLink();

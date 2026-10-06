@@ -1,17 +1,51 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trinergy Testing Tracker</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="config.js"></script></head><body>
-<header><div><b>▲ TRINERGY</b><small> QR TESTING TRACKER · PILOT</small></div><button id="refresh">↻ Refresh</button></header>
-<nav><button data-page="dash" class="active">Dashboard</button><button data-page="scan">Scan / Update</button><button data-page="active">Active UPS</button><button data-page="qrgen">QR Generator</button><button data-page="admin">Admin</button><button data-page="stock">Stock</button></nav>
-<main><section id="dash" class="page active"><h2>Current Month KPI</h2><div id="kpis" class="grid3"></div><div class="row"><div class="panel grow"><div class="panelhead"><h3>Monthly Performance</h3><input id="month" type="month"></div><div id="progress"></div></div><div class="panel today"><div id="today"></div></div></div><div class="panel bay-monitor"><h3>Test Bay Monitoring (Live)</h3><div id="bays" class="bays"></div></div></section>
-<section id="scan" class="page"><div class="panel form"><h2>QR Scan / Engineer Update</h2><label>QR Code</label><div class="inline"><input id="qr" placeholder="Scan or enter QR"><button id="loadQr">Open</button></div><div id="unitbox"></div></div></section>
-<section id="active" class="page"><div class="panel"><h2>Active UPS</h2><p class="muted">Live UPS currently under testing.</p><div id="activelist"></div></div></section><section id="qrgen" class="page"><div class="panel form"><h2>QR Generator</h2>
-    <p class="muted">Generate embedded QR codes for the pilot. Printing can be done separately on the Toshiba printer.</p>
-    <div class="qr-controls"><label>Quantity</label><input id="qrQty" type="number" min="1" max="100" value="10"><button id="generateQr">Generate QR Batch</button></div>
-    <div id="qrBatchInfo" class="muted"></div><div id="qrBatch" class="qr-grid"></div></div></section><section id="admin" class="page"><div class="panel form"><h2>Admin · Pilot Timer Settings</h2>
-    <p class="muted">Temporary short timers for flow testing. These values sync through Supabase for all pilot devices.</p>
-    <div class="timer-grid">
-      <label>Core Heatrun (seconds)<input id="timerCore" type="number" min="5" max="14400"></label>
-      <label>Booster Heatrun (seconds)<input id="timerBooster" type="number" min="5" max="3600"></label>
-      <label>STS Heatrun (seconds)<input id="timerSts" type="number" min="5" max="7200"></label>
-    </div>
-    <button id="saveTimers">Save Pilot Timers</button><div id="timerStatus" class="muted"></div>
-    </div></section><section id="stock" class="page"><div class="panel"><h2>Internal Buffer Stock</h2><div id="stocklist"></div></div></section></main><div id="toast"></div><script src="app.js"></script></body></html>
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trinergy QR Testing Tracker</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="config.js"></script></head>
+<body>
+<aside class="sidebar">
+ <div class="brand"><b>◈ TRINERGY</b><small>QR TESTING TRACKER</small><em>UPS TESTING • MONITORING • TRACKING</em></div>
+ <div class="side-watermark"></div>
+ <nav>
+  <button data-page="dash" class="active">⌂ <span>Dashboard</span></button>
+  <button data-page="active">▣ <span>Active UPS</span></button>
+  <button data-page="bayspage">▤ <span>Test Bay Monitoring</span></button>
+  <button data-page="stock">◇ <span>Stock / Finishing</span></button>
+  <div class="navlabel">ADMIN</div>
+  <button data-page="targets">◎ <span>Targets</span></button>
+  <button data-page="serials">123 <span>Serial Numbers</span></button>
+  <button data-page="qrgen">⌗ <span>QR Generator</span></button>
+  <button data-page="engineers">♟ <span>Engineers</span></button>
+  <button data-page="stages">⚙ <span>Stages & Timers</span></button>
+  <button data-page="baymaster">▥ <span>Test Bay Master</span></button>
+  <button data-page="oldserial">↥ <span>Old Serial Re-entry</span></button>
+  <button data-page="reports">▥ <span>Reports & Trends</span></button>
+  <button data-page="history">▤ <span>Scan History</span></button>
+ </nav>
+</aside>
+<div class="app">
+<header><div><h1 id="pageTitle">Dashboard</h1><small id="pageSub">Live status of UPS testing across all bays and stages</small></div><div class="headright"><span class="live">● Live Updates</span><span id="clock"></span><button id="refresh">↻ Refresh</button></div></header>
+<main>
+<section id="dash" class="page active"><h2>Current Month KPI</h2><div id="kpis" class="grid3"></div><div class="row"><div class="panel grow"><div class="panelhead"><h3>Monthly Performance</h3><input id="month" type="month"></div><div id="progress"></div></div><div class="panel today"><div id="today"></div></div></div><div class="panel bay-monitor"><h3>Test Bay Monitoring (Live)</h3><div id="bays" class="bays"></div></div><div class="panel bay-monitor new-lower"><div class="panelhead"><h2>◉ Test Bay Monitoring (Live)</h2><button class="ghost" data-go="bayspage">View All Bays →</button></div><div id="bays" class="bays"></div></div>
+<div class="dashgrid new-lower"><div class="panel"><div class="panelhead"><h2>Recent Scan / Stage Updates</h2><button class="ghost" data-go="history">View All →</button></div><div id="recent"></div></div><div class="panel"><div class="panelhead"><div><h2>Input Distribution — Daily Planned Receipt vs Actual Receipt</h2><small>Actual receipt pattern for selected month</small></div><button class="ghost" id="dailyTableBtn">View Daily Table →</button></div><canvas id="inputChart" height="210"></canvas><div id="dailyTable" class="hidden"></div></div></div></section>
+
+<section id="scan" class="page"><div class="scan-shell"><div class="scan-hero"><div><span class="eyebrow">ENGINEER TEST CONTROL</span><h2>Scan / Update UPS</h2><p>Scan QR or open an Active UPS serial to continue testing.</p></div><div class="scan-input"><input id="qr" placeholder="Scan / enter QR code"><button id="loadQr">OPEN UPS</button></div></div><div id="unitbox"></div></div></section>
+<section id="active" class="page"><div class="panel"><div class="panelhead"><h2>Active UPS</h2><span class="muted">Click serial number to open Update screen</span></div><div id="activelist"></div></div></section>
+<section id="bayspage" class="page"><div class="panel"><div class="panelhead"><h2>Test Bay Monitoring</h2><span class="muted">Click a bay for full bay detail</span></div><div id="allbays" class="bays"></div></div><div id="baydetail"></div></section>
+<section id="stock" class="page"><div class="panel"><h2>Internal Buffer Stock / Finishing</h2><div id="stocklist"></div></div></section>
+
+<section id="targets" class="page"><div class="panel form"><h2>Monthly Targets</h2><div class="formgrid"><label>Month<input id="targetMonth" type="month"></label><label>3X Target<input id="target3x" type="number" min="0"></label><label>2X Target<input id="target2x" type="number" min="0"></label><label>STS Target<input id="targetsts" type="number" min="0"></label><label>Planned Receipt / Working Day<input id="plannedDaily" type="number" min="0"></label></div><button id="saveTargets">Save Monthly Target</button></div></section>
+<section id="serials" class="page"><div class="panel form"><h2>Serial Number Control</h2><p class="muted">Set the NEXT serial number. Auto assignment happens when engineer starts testing.</p><div id="serialControls" class="serialgrid"></div></div></section>
+<section id="qrgen" class="page"><div class="panel form"><h2>QR Generator</h2><div class="inline"><label>Quantity<input id="qrQty" type="number" min="1" max="100" value="10"></label><button id="generateQr">Generate QR Batch</button></div><p class="muted">Toshiba/BarTender labels can also use the same ?qr=TQR-xxxx direct-link format.</p><div id="qrBatchInfo"></div><div id="qrBatch" class="qr-grid"></div></div></section>
+<section id="engineers" class="page"><div class="panel form"><h2>Testing Engineer Master</h2><p class="muted">Only ACTIVE engineers are allowed to perform testing actions.</p><div class="inline"><input id="engName" placeholder="Engineer name"><input id="engId" placeholder="Employee ID"><button id="addEngineer">Add / Reactivate Engineer</button></div><div id="engineerList"></div></div></section>
+<section id="stages" class="page"><div class="panel form"><h2>Stage Master & Timers</h2><div class="timer-grid"><label>Core Heatrun (seconds)<input id="timerCore" type="number"></label><label>Booster Heatrun (seconds)<input id="timerBooster" type="number"></label><label>STS Heatrun (seconds)<input id="timerSts" type="number"></label><button id="saveTimers">Save Timers</button></div><hr><h3>Stage Master</h3><div id="stageList"></div><div class="inline"><input id="newStageCode" placeholder="NEW_STAGE"><input id="newStageName" placeholder="Stage display name"><select id="newStageRequired"><option value="true">Required</option><option value="false">Optional</option></select><button id="addStage">Add Stage</button></div></div></section>
+<section id="baymaster" class="page"><div class="panel form"><h2>Test Bay Master</h2><div class="inline"><input id="bayName" placeholder="New bay name"><select id="bayKind"><option value="CORE">CORE — LV + HV</option><option value="STS_TEST">STS TEST</option><option value="STS_HEATRUN">STS HEATRUN</option></select><button id="addBay">Add Bay</button></div><div id="bayMasterList"></div></div></section>
+<section id="oldserial" class="page"><div class="panel form"><h2>Old Serial Re-entry</h2><p class="muted">For existing/historical UPS. Re-entry does not need a QR sticker.</p><div class="formgrid"><label>Serial Number<input id="oldSerialNo"></label><label>UPS Type<select id="oldType"><option>3X</option><option>2X</option><option>STS</option></select></label><label>Status<select id="oldStatus"><option value="COMPLETED">Completed</option><option value="STOCK">Stock</option><option value="UNDER_TESTING">Under Testing</option><option value="RECEIVED">Received</option></select></label><label>Received Date<input id="oldReceived" type="date"></label><label>Completed Date<input id="oldCompleted" type="date"></label></div><button id="saveOldSerial">Add Old Serial</button></div></section>
+<section id="reports" class="page"><div class="panel"><h2>Reports & Trends</h2><div id="reportCards" class="reportcards"></div><button id="exportCsv">Download Management CSV</button><div id="yearTable"></div></div></section>
+<section id="history" class="page"><div class="panel"><h2>UPS Scan / Change History</h2><div class="inline"><input id="historySearch" placeholder="Serial / QR / engineer / stage"><button id="loadHistory">Search History</button></div><div id="historyList"></div></div></section>
+</main></div>
+<div id="toast"></div>
+<script src="app.js"></script></body></html>

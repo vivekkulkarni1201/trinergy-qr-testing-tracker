@@ -14,16 +14,7 @@
   <button data-page="active">▣ <span>Active UPS</span></button>
   <button data-page="bayspage">▤ <span>Test Bay Monitoring</span></button>
   <button data-page="stock">◇ <span>Stock / Finishing</span></button>
-  <div class="navlabel">ADMIN</div>
-  <button data-page="targets">◎ <span>Targets</span></button>
-  <button data-page="serials">123 <span>Serial Numbers</span></button>
-  <button data-page="qrgen">⌗ <span>QR Generator</span></button>
-  <button data-page="engineers">♟ <span>Engineers</span></button>
-  <button data-page="stages">⚙ <span>Stages & Timers</span></button>
-  <button data-page="baymaster">▥ <span>Test Bay Master</span></button>
-  <button data-page="oldserial">↥ <span>Old Serial Re-entry</span></button>
-  <button data-page="reports">▥ <span>Reports & Trends</span></button>
-  <button data-page="history">▤ <span>Scan History</span></button>
+  <button data-page="adminhome">⚙ <span>Admin</span></button>
  </nav>
 </aside>
 <div class="app">
@@ -33,13 +24,24 @@
 <div id="kpis" class="grid3"></div>
 <div class="row"><div class="panel grow"><div class="panelhead"><h3>Monthly Performance</h3><input id="month" type="month"></div><div id="progress"></div></div><div class="panel today"><div id="today"></div></div></div>
 <div class="panel bay-monitor"><div class="panelhead"><h3>Test Bay Monitoring (Live)</h3><button class="ghost" data-go="bayspage">View All Bays →</button></div><div id="bays" class="bays"></div></div>
-<div class="dashgrid lower-dashboard"><div class="panel"><div class="panelhead"><h2>Recent Scan / Stage Updates</h2><button class="ghost" data-go="history">View All →</button></div><div id="recent"></div></div><div class="panel"><div class="panelhead"><div><h2>Input Distribution — Daily Planned Receipt vs Actual Receipt</h2><small>Actual receipt pattern for selected month</small></div><button class="ghost" id="dailyTableBtn">View Daily Table →</button></div><canvas id="inputChart" height="210"></canvas><div id="dailyTable" class="hidden"></div></div></div>
+<div class="dashgrid lower-dashboard"><div class="panel"><div class="panelhead"><h2>Recent Scan / Stage Updates</h2><button class="ghost" data-go="history">View All →</button></div><div id="recent"></div></div><div class="panel"><div class="panelhead"><div><h2>Input Distribution — Daily Planned Receipt vs Actual Receipt</h2><small>X axis = dates, Y axis = qty</small></div><div class="inline charttools"><select id="inputType"><option value="ALL">All Types</option><option value="3X">3X</option><option value="2X">2X</option><option value="STS">STS</option></select><button class="ghost" id="dailyTableBtn">View Daily Table →</button></div></div><canvas id="inputChart" height="240"></canvas><div id="dailyTable" class="hidden"></div></div></div>
 </section>
 
 <section id="scan" class="page"><div class="scan-shell"><div class="scan-hero"><div><span class="eyebrow">ENGINEER TEST CONTROL</span><h2>Scan / Update UPS</h2><p>Scan QR or open an Active UPS serial to continue testing.</p></div><div class="scan-input"><input id="qr" placeholder="Scan / enter QR code"><button id="loadQr">OPEN UPS</button></div></div><div id="unitbox"></div></div></section>
 <section id="active" class="page"><div class="panel"><div class="panelhead"><h2>Active UPS</h2><span class="muted">Click serial number to open Update screen</span></div><div id="activelist"></div></div></section>
 <section id="bayspage" class="page"><div class="panel"><div class="panelhead"><h2>Test Bay Monitoring</h2><span class="muted">Click a bay for full bay detail</span></div><div id="allbays" class="bays"></div></div><div id="baydetail"></div></section>
 <section id="stock" class="page"><div class="panel"><h2>Internal Buffer Stock / Finishing</h2><div id="stocklist"></div></div></section>
+<section id="adminhome" class="page"><div class="panel adminhome"><div class="panelhead"><h2>Admin Control Center</h2><span class="muted">All admin functions moved here. Open any module below.</span></div><div class="admin-grid">
+<button class="admin-tile" data-go="targets"><b>Targets</b><span>Monthly targets & planned receipts</span></button>
+<button class="admin-tile" data-go="serials"><b>Serial Numbers</b><span>Auto serial start numbers by UPS type</span></button>
+<button class="admin-tile" data-go="qrgen"><b>QR Generator</b><span>Generate pilot QR labels</span></button>
+<button class="admin-tile" data-go="engineers"><b>Engineers</b><span>Authorized testing engineers</span></button>
+<button class="admin-tile" data-go="stages"><b>Stages & Timers</b><span>Stage flow and heatrun timers</span></button>
+<button class="admin-tile" data-go="baymaster"><b>Test Bay Master</b><span>Core / STS bay setup</span></button>
+<button class="admin-tile" data-go="oldserial"><b>Old Serial Re-entry</b><span>Bring past UPS into system</span></button>
+<button class="admin-tile" data-go="reports"><b>Reports & Trends</b><span>Management summary & trend tables</span></button>
+<button class="admin-tile" data-go="history"><b>Scan History</b><span>QR scan / stage update audit trail</span></button>
+</div></div></section>
 
 <section id="targets" class="page"><div class="panel form"><h2>Monthly Targets</h2><div class="formgrid"><label>Month<input id="targetMonth" type="month"></label><label>3X Target<input id="target3x" type="number" min="0"></label><label>2X Target<input id="target2x" type="number" min="0"></label><label>STS Target<input id="targetsts" type="number" min="0"></label><label>Planned Receipt / Working Day<input id="plannedDaily" type="number" min="0"></label></div><button id="saveTargets">Save Monthly Target</button></div></section>
 <section id="serials" class="page"><div class="panel form"><h2>Serial Number Control</h2><p class="muted">Set the NEXT serial number. Auto assignment happens when engineer starts testing.</p><div id="serialControls" class="serialgrid"></div></div></section>

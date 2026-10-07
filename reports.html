@@ -1,0 +1,7 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reports</title>
+<link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script></head>
+<body><header id="topbar"></header><main>
+<div class="page-title"><div><h1>Reports & Trends</h1><div class="muted">Input receipt distribution</div></div><input id="reportMonth" type="month"></div>
+<div class="report-grid"><div class="panel chart-panel"><div class="panel-head"><div><h2>Input Distribution — 3X & 2X</h2><small class="muted">X = Date · Y = Qty</small></div></div><div class="panel-body"><canvas id="chartCore"></canvas></div></div>
+<div class="panel chart-panel"><div class="panel-head"><div><h2>Input Distribution — STS</h2><small class="muted">X = Date · Y = Qty</small></div></div><div class="panel-body"><canvas id="chartSts"></canvas></div></div></div>
+</main><div id="toast"></div><script src="shared.js"></script><script src="reports.js"></script></body></html>

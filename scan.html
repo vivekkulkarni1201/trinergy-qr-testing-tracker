@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Scan / Update</title>
+<link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script></head>
+<body><header id="topbar"></header><main>
+<div class="page-title"><div><h1>Scan / Update UPS</h1><div class="muted">QR scan or direct live UPS selection</div></div></div>
+<div class="panel"><div class="scan-hero"><div><span class="muted">ENGINEER TEST CONTROL</span><h2>Open UPS</h2><p>Only active engineers can perform test actions.</p></div>
+<div class="scan-controls"><div class="scan-row"><input id="qr" placeholder="Scan / enter QR"><button id="loadQr">OPEN QR</button></div>
+<div class="scan-row"><select id="liveUps"><option>Select Live UPS...</option></select><button id="openLive">OPEN SELECTED UPS</button></div></div></div></div>
+<div id="unitbox"></div>
+</main><div id="toast"></div><script src="shared.js"></script><script src="scan.js"></script></body></html>

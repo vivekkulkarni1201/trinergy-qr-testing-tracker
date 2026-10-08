@@ -10,6 +10,7 @@
 <button class="admin-tab" data-pane="bays">Test Bays</button>
 <button class="admin-tab" data-pane="stages">Stages</button>
 <button class="admin-tab" data-pane="timers">Timers</button>
+<button class="admin-tab" data-pane="images">KPI Images</button>
 <button class="admin-tab" data-pane="oldserial">Old Serial Re-entry</button>
 <button class="admin-tab" data-pane="history">Scan History</button>
 <a class="admin-tab qr-link" href="qr.html">QR Generator ↗</a>
@@ -30,12 +31,13 @@
 <div class="panel admin-pane" id="pane-bays">
 <div class="panel-head"><h2>Test Bay Master</h2><span class="muted">Add bays and enable/disable with toggle</span></div>
 <div class="panel-body"><div class="scan-row"><input id="newBayName" placeholder="Bay name"><select id="newBayKind"><option value="CORE">CORE — LV + HV</option><option value="STS_TEST">STS Test Bay</option><option value="STS_HEATRUN">STS Heatrun Bay</option></select><button id="addBay">Add Bay</button></div>
-<table class="table"><thead><tr><th>Bay</th><th>Role</th><th>Sections</th><th>Active</th></tr></thead><tbody id="bayMasterBody"></tbody></table></div></div>
+<table class="table"><thead><tr><th>Bay Name</th><th>Role</th><th>Sections</th><th>Active</th><th>Save</th></tr></thead><tbody id="bayMasterBody"></tbody></table></div></div>
 <div class="panel admin-pane" id="pane-stages">
 <div class="panel-head"><h2>Stage Master</h2><span class="muted">Add stages and enable/disable with toggle</span></div>
 <div class="panel-body"><div class="scan-row"><input id="newStageCode" placeholder="Stage code"><input id="newStageName" placeholder="Stage name"><select id="newStageReq"><option value="true">Required</option><option value="false">Optional</option></select><button id="addStage">Add Stage</button></div>
 <table class="table"><thead><tr><th>Code</th><th>Name</th><th>Required</th><th>Active</th><th>Save</th></tr></thead><tbody id="stageMasterBody"></tbody></table></div></div>
 <div class="panel admin-pane" id="pane-timers"><div class="panel-head"><h2>Heatrun Timers</h2></div><div class="panel-body"><div class="form-grid"><label>Core (sec)<input id="coreTimer" type="number"></label><label>Booster (sec)<input id="boostTimer" type="number"></label><label>STS (sec)<input id="stsTimer" type="number"></label></div><br><button id="saveTimers">Save Timers</button></div></div>
+<div class="panel admin-pane" id="pane-images"><div class="panel-head"><h2>KPI Product Images</h2><span class="muted">Upload embedded images for 3X / 2X / STS dashboard cards</span></div><div class="panel-body"><div class="image-upload-grid"><div class="admin-tile"><h3>3X Image</h3><input id="img3X" type="file" accept="image/*"><div id="prev3X" class="image-preview"></div><button onclick="uploadKpiImage('3X','img3X')">Upload 3X</button></div><div class="admin-tile"><h3>2X Image</h3><input id="img2X" type="file" accept="image/*"><div id="prev2X" class="image-preview"></div><button onclick="uploadKpiImage('2X','img2X')">Upload 2X</button></div><div class="admin-tile"><h3>STS Image</h3><input id="imgSTS" type="file" accept="image/*"><div id="prevSTS" class="image-preview"></div><button onclick="uploadKpiImage('STS','imgSTS')">Upload STS</button></div></div></div></div>
 <div class="panel admin-pane" id="pane-oldserial">
 <div class="panel-head"><h2>Manual / Till-Date UPS Entry</h2><span class="muted">Use for old serials or UPS already in process before tracker launch</span></div>
 <div class="panel-body"><div class="form-grid">

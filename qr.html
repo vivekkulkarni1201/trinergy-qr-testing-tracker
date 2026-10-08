@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR Generator</title>
+<link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="config.js"></script></head>
+<body><header id="topbar"></header><main>
+<div class="page-title"><div><h1>QR Generator</h1><div class="muted">Generate direct-link Trinergy QR labels</div></div></div>
+<div class="panel"><div class="panel-head"><h2>QR Batch Control</h2></div><div class="panel-body">
+<div class="form-grid"><label>Next QR Number<input id="nextQr" type="number" min="1"></label><label>Batch Quantity<input id="qrQty" type="number" value="10" min="1" max="100"></label></div>
+<br><button id="saveNextQr" class="secondary">Save Next QR Number</button> <button id="generateQr" class="green">Generate Batch</button>
+<p class="muted">QR numbers never reset monthly. Each QR opens the live tracker directly.</p><div id="qrSummary"></div><div id="qrGrid" class="qr-grid"></div>
+</div></div></main><div id="toast"></div><script src="shared.js"></script><script src="qr.js"></script></body></html>

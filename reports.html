@@ -1,7 +1,8 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reports</title>
 <link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script></head>
-<body><header id="topbar"></header><main>
-<div class="page-title"><div><h1>Reports & Trends</h1><div class="muted">Input receipt distribution</div></div><input id="reportMonth" type="month"></div>
-<div class="report-grid"><div class="panel chart-panel"><div class="panel-head"><div><h2>Input Distribution — 3X & 2X</h2><small class="muted">X = Date · Y = Qty</small></div></div><div class="panel-body"><canvas id="chartCore"></canvas></div></div>
-<div class="panel chart-panel"><div class="panel-head"><div><h2>Input Distribution — STS</h2><small class="muted">X = Date · Y = Qty</small></div></div><div class="panel-body"><canvas id="chartSts"></canvas></div></div></div>
-</main><div id="toast"></div><script src="shared.js"></script><script src="reports.js"></script></body></html>
+<body><header id="topbar"></header><main><div class="page-title"><div><h1>Reports & Trends</h1><div class="muted">PowerUPS-style daily distribution + monthly history</div></div><input id="reportMonth" type="month"></div>
+<div class="summary-cards" id="summaryCards"></div>
+<div class="panel"><div class="panel-head"><div><h2>Input Distribution — Daily Planned Receipt vs Actual Receipt</h2><small class="muted">3X + 2X combined; X = Date, Y = Qty</small></div></div><div class="panel-body"><canvas id="chartCore"></canvas></div></div>
+<div class="panel"><div class="panel-head"><div><h2>Input Distribution — STS</h2><small class="muted">X = Date, Y = Qty</small></div></div><div class="panel-body"><canvas id="chartSts"></canvas></div></div>
+<div class="panel"><div class="panel-head"><h2>Daily Testing Load Distribution</h2><button id="copyTable">Copy Styled Table for Email</button></div><div class="panel-body"><div class="table-scroll"><table class="daily-matrix" id="dailyMatrix"></table></div><div class="report-note"><b>Gap = Actual Receipt − Planned Receipt</b></div></div></div>
+<div class="panel"><div class="panel-head"><h2>Historical / Monthly Summary</h2><select id="historyYear"></select></div><div class="panel-body"><table class="table"><thead><tr><th>Month</th><th>3X T/R/C</th><th>2X T/R/C</th><th>STS T/R/C</th><th>Total Completed</th><th>Notes</th></tr></thead><tbody id="historySummary"></tbody></table></div></div></main><div id="toast"></div><script src="shared.js"></script><script src="reports.js"></script></body></html>

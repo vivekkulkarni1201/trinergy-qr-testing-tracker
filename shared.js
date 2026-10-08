@@ -20,6 +20,7 @@ function navHtml(active){
     ['active','active.html','☷','Active UPS'],
     ['bays','bays.html','▦','Test Bay Monitoring'],
     ['buffer','buffer.html','◇','Buffer Stock'],
+    ['qrgen','qr.html','⌗','QR Generator'],
     ['admin','admin.html','⚙','Admin'],
     ['reports','reports.html','▥','Reports']
   ];

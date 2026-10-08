@@ -2,10 +2,50 @@
 <link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script></head>
 <body><header id="topbar"></header><main>
 <div class="page-title"><div><h1>Admin Control Center</h1><div class="muted">Dashboard remains isolated from Admin changes</div></div></div>
-<div class="admin-tabs"><button class="admin-tab active" data-pane="targets">Targets</button><button class="admin-tab" data-pane="serials">Serial Numbers</button><button class="admin-tab" data-pane="engineers">Engineers</button><button class="admin-tab" data-pane="timers">Timers</button><button class="admin-tab" data-pane="history">Scan History</button></div>
+<div class="admin-tabs">
+<button class="admin-tab active" data-pane="targets">Targets</button>
+<button class="admin-tab" data-pane="historical">Historical Data</button>
+<button class="admin-tab" data-pane="serials">Serial Numbers</button>
+<button class="admin-tab" data-pane="engineers">Engineers</button>
+<button class="admin-tab" data-pane="bays">Test Bays</button>
+<button class="admin-tab" data-pane="stages">Stages</button>
+<button class="admin-tab" data-pane="timers">Timers</button>
+<button class="admin-tab" data-pane="oldserial">Old Serial Re-entry</button>
+<button class="admin-tab" data-pane="history">Scan History</button>
+<a class="admin-tab qr-link" href="qr.html">QR Generator ↗</a>
+</div>
 <div class="panel admin-pane active" id="pane-targets"><div class="panel-head"><h2>Monthly Targets</h2></div><div class="panel-body"><div class="form-grid"><label>Month<input id="targetMonth" type="month"></label><label>3X Target<input id="tg3x" type="number"></label><label>2X Target<input id="tg2x" type="number"></label><label>STS Target<input id="tgsts" type="number"></label></div><br><button id="saveTargets">Save Targets</button></div></div>
+<div class="panel admin-pane" id="pane-historical">
+<div class="panel-head"><h2>Historical / Monthly Data</h2><span class="muted">Past month target, received and completed data</span></div>
+<div class="panel-body">
+<div class="form-grid hist-top"><label>Month<input id="histMonth" type="month"></label><label>Notes<input id="histNotes" placeholder="Optional note"></label></div>
+<div class="hist-grid">
+<div class="admin-tile"><h3>3X</h3><label>Target<input id="h3Target" type="number" min="0"></label><label>Received<input id="h3Received" type="number" min="0"></label><label>Completed<input id="h3Completed" type="number" min="0"></label></div>
+<div class="admin-tile"><h3>2X</h3><label>Target<input id="h2Target" type="number" min="0"></label><label>Received<input id="h2Received" type="number" min="0"></label><label>Completed<input id="h2Completed" type="number" min="0"></label></div>
+<div class="admin-tile"><h3>STS</h3><label>Target<input id="hsTarget" type="number" min="0"></label><label>Received<input id="hsReceived" type="number" min="0"></label><label>Completed<input id="hsCompleted" type="number" min="0"></label></div>
+</div><br><button id="saveHistorical" class="green">Save Historical Month</button>
+<div id="historicalList"></div></div></div>
 <div class="panel admin-pane" id="pane-serials"><div class="panel-head"><h2>Next Serial Counters</h2></div><div class="panel-body"><div class="admin-grid" id="serials"></div></div></div>
 <div class="panel admin-pane" id="pane-engineers"><div class="panel-head"><h2>Testing Engineers</h2></div><div class="panel-body"><div class="scan-row"><input id="engName" placeholder="Engineer name"><input id="engId" placeholder="Employee ID"><button id="addEngineer">Add / Reactivate</button></div><table class="table"><thead><tr><th>Name</th><th>Employee ID</th><th>Status</th></tr></thead><tbody id="engineerTable"></tbody></table></div></div>
+<div class="panel admin-pane" id="pane-bays">
+<div class="panel-head"><h2>Test Bay Master</h2><span class="muted">Add bays and enable/disable with toggle</span></div>
+<div class="panel-body"><div class="scan-row"><input id="newBayName" placeholder="Bay name"><select id="newBayKind"><option value="CORE">CORE — LV + HV</option><option value="STS_TEST">STS Test Bay</option><option value="STS_HEATRUN">STS Heatrun Bay</option></select><button id="addBay">Add Bay</button></div>
+<table class="table"><thead><tr><th>Bay</th><th>Role</th><th>Sections</th><th>Active</th></tr></thead><tbody id="bayMasterBody"></tbody></table></div></div>
+<div class="panel admin-pane" id="pane-stages">
+<div class="panel-head"><h2>Stage Master</h2><span class="muted">Add stages and enable/disable with toggle</span></div>
+<div class="panel-body"><div class="scan-row"><input id="newStageCode" placeholder="Stage code"><input id="newStageName" placeholder="Stage name"><select id="newStageReq"><option value="true">Required</option><option value="false">Optional</option></select><button id="addStage">Add Stage</button></div>
+<table class="table"><thead><tr><th>Code</th><th>Name</th><th>Required</th><th>Active</th><th>Save</th></tr></thead><tbody id="stageMasterBody"></tbody></table></div></div>
 <div class="panel admin-pane" id="pane-timers"><div class="panel-head"><h2>Heatrun Timers</h2></div><div class="panel-body"><div class="form-grid"><label>Core (sec)<input id="coreTimer" type="number"></label><label>Booster (sec)<input id="boostTimer" type="number"></label><label>STS (sec)<input id="stsTimer" type="number"></label></div><br><button id="saveTimers">Save Timers</button></div></div>
+<div class="panel admin-pane" id="pane-oldserial">
+<div class="panel-head"><h2>Manual / Till-Date UPS Entry</h2><span class="muted">Use for old serials or UPS already in process before tracker launch</span></div>
+<div class="panel-body"><div class="form-grid">
+<label>Serial Number<input id="oldSerial"></label>
+<label>UPS Type<select id="oldType"><option>3X</option><option>2X</option><option>STS</option></select></label>
+<label>Status<select id="oldStatus"><option value="RECEIVED">Received</option><option value="UNDER_TESTING">Under Testing</option><option value="STOCK">Buffer Stock</option><option value="COMPLETED">Completed</option></select></label>
+<label>Current Stage<input id="oldStage" placeholder="e.g. HV IN PROGRESS"></label>
+<label>Received Date<input id="oldReceived" type="date"></label>
+<label>Completed / Stock Date<input id="oldCompleted" type="date"></label>
+<label>QR / Tracker ID (optional)<input id="oldQr" placeholder="auto if blank"></label>
+</div><br><button id="saveOldSerial" class="green">Add Till-Date UPS</button></div></div>
 <div class="panel admin-pane" id="pane-history"><div class="panel-head"><h2>QR Scan / Stage History</h2></div><div class="panel-body"><div class="scan-row"><input id="historySearch" placeholder="Serial / QR / Engineer / Stage"><button id="searchHistory">Search</button></div><table class="table"><thead><tr><th>Date/Time</th><th>Serial/QR</th><th>Stage</th><th>Engineer</th><th>Result</th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
 </main><div id="toast"></div><script src="shared.js"></script><script src="admin.js"></script></body></html>

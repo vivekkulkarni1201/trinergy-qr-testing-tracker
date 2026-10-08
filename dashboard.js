@@ -1,11 +1,24 @@
 
 mountTopbar('dashboard');
 let data, selectedMonth = ym();
-const monthDate = ()=>new Date(selectedMonth+'-01T00:00:00');
-function monthLabel(){ return monthDate().toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
+function monthParts(){const [y,m]=selectedMonth.split('-').map(Number);return {y,m};}
+function monthLabel(){const {y,m}=monthParts();return new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});}
 function shiftMonth(delta){
-  const d=monthDate(); d.setMonth(d.getMonth()+delta); selectedMonth=ym(d);
-  $('#monthLabel').textContent=monthLabel(); renderPerformance(); 
+  let {y,m}=monthParts();
+  m += delta;
+  while(m<1){m+=12;y--}
+  while(m>12){m-=12;y++}
+  selectedMonth=`${y}-${String(m).padStart(2,'0')}`;
+  $('#monthLabel').textContent=monthLabel();
+  renderPerformance();
+}
+function flagSvg(){
+ return `<svg class="flag-svg" viewBox="0 0 90 64" aria-label="finish flag">
+ <path d="M12 58V6" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+ <path d="M15 7 C27 1 36 13 48 7 C60 1 69 13 81 7 L81 38 C69 44 60 32 48 38 C36 44 27 32 15 38 Z" fill="#fff"/>
+ <defs><pattern id="chk" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="white"/><rect width="6" height="6" fill="#111"/><rect x="6" y="6" width="6" height="6" fill="#111"/></pattern></defs>
+ <path d="M15 7 C27 1 36 13 48 7 C60 1 69 13 81 7 L81 38 C69 44 60 32 48 38 C36 44 27 32 15 38 Z" fill="url(#chk)"/>
+ </svg>`;
 }
 function kpiHtml(type, cls){
   const c=counts(data,type,ym()), p=c.target?Math.round(c.completed/c.target*100):0;
@@ -33,7 +46,7 @@ function renderPerformance(){
     const c=counts(data,t,selectedMonth), p=c.target?Math.min(100,Math.round(c.completed/c.target*100)):0;
     return `<div class="prog-row"><strong>${t}</strong><div class="prog-wrap">
       <div class="prog-meta"><span>Completed <b>${c.completed}</b> / Target <b>${c.target}</b></span><span>${p}%</span></div>
-      <div class="bar"><i style="width:${p}%"></i></div></div><div class="flag"></div></div>`;
+      <div class="bar"><i style="width:${p}%"></i></div></div><div class="flag">${flagSvg()}</div></div>`;
   }).join('');
 }
 function renderToday(){

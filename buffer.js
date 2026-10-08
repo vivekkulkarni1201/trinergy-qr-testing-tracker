@@ -9,6 +9,6 @@ async function finish(id){
 }
 async function boot(){
  const d=await loadCore(), rows=d.u.filter(x=>x.status==='STOCK');
- $('#bufferBody').innerHTML=rows.map(u=>`<tr><td>${esc(u.serial_number||u.qr_code)}</td><td>${u.ups_type}</td><td>${esc(u.current_stage)}</td><td>${u.stock_at?new Date(u.stock_at).toLocaleString():'—'}</td><td><button class="green" onclick="finish('${u.id}')">To Finishing</button></td></tr>`).join('')||'<tr><td colspan="5">Buffer stock empty.</td></tr>';
+ $('#bufferBody').innerHTML=rows.map(u=>`<tr><td><a class="serial-link" href="scan.html?qr=${encodeURIComponent(u.qr_code)}">${esc(u.serial_number||u.qr_code)}</a></td><td>${u.ups_type}</td><td>${esc(u.current_stage)}</td><td>${u.stock_at?new Date(u.stock_at).toLocaleString():'—'}</td><td><button class="green" onclick="finish('${u.id}')">To Finishing</button></td></tr>`).join('')||'<tr><td colspan="5">Buffer stock empty.</td></tr>';
 }
 window.finish=finish; boot().catch(e=>showToast(e.message));

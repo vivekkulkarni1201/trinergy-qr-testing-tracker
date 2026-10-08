@@ -1,6 +1,6 @@
 
 mountTopbar('dashboard');
-let data, selectedMonth = ym();
+let data, selectedMonth = ym(), kpiAssets={};
 function monthParts(){const [y,m]=selectedMonth.split('-').map(Number);return {y,m};}
 function monthLabel(){const {y,m}=monthParts();return new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});}
 function shiftMonth(delta){
@@ -26,7 +26,7 @@ function kpiHtml(type, cls){
     <div class="kpi-top">
       <div class="kpi-title"><h1>${type}</h1><b>TRINERGY ${type==='3X'?'T3X':type==='2X'?'T2X':'STS'}</b></div>
       <div class="donut" style="--pct:${Math.min(100,p)}"><div><strong>${p}%</strong><small>Completed</small></div></div>
-      <div class="racks"><span class="rack"></span><span class="rack"></span><span class="rack"></span></div>
+      <div class="kpi-product">${kpiAssets[type]?`<img src="${esc(kpiAssets[type])}" alt="${type}">`:`<div class="racks"><span class="rack"></span><span class="rack"></span><span class="rack"></span></div>`}</div>
     </div>
     <div class="kpi-stats">
       <div class="metric target"><span>🎯 Target</span><b>${c.target}</b></div>
@@ -92,7 +92,7 @@ async function refreshTimers(){
 async function boot(){
   const qr=new URLSearchParams(location.search).get('qr');
   if(qr){ location.replace(`scan.html?qr=${encodeURIComponent(qr)}`); return; }
-  data=await loadCore(); renderKpis(); renderPerformance(); renderToday(); await renderBays();
+  data=await loadCore();const ar=await sb.from('tqr_ui_assets').select('*');if(!ar.error)(ar.data||[]).forEach(x=>{if(x.asset_key.startsWith('kpi_'))kpiAssets[x.asset_key.slice(4)]=x.public_url});renderKpis(); renderPerformance(); renderToday(); await renderBays();
   setInterval(refreshTimers,1000);
 }
 $('#prevMonth').onclick=()=>shiftMonth(-1); $('#nextMonth').onclick=()=>shiftMonth(1);

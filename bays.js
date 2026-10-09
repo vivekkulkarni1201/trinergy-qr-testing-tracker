@@ -14,7 +14,7 @@ async function render(){
     const secs=b.bay_kind==='CORE'?['LV','HV']:[b.bay_kind==='STS_TEST'?'STS_TEST':'STS_HEATRUN'];
     return `<div class="bay-card"><div class="bay-title"><h3>${esc(b.bay_name)}</h3></div><div class="bay-sections">${secs.map(sec=>{
       const u=unitForOcc(data,activeOcc(data,b.id,sec));
-      return `<div class="bay-slot ${u?'occupied':'empty'}" ${u?`data-qr="${esc(u.qr_code)}"`:''}><div class="slot-head"><span class="slot-tag">${sec.replace('_',' ')}</span><i class="slot-dot"></i></div>${u?`<div class="slot-serial">${esc((u.serial_number||'----').slice(-4))}<small>${u.ups_type}</small></div><div class="slot-stage">${esc(u.current_stage||'')}</div><div class="slot-timer" data-t="${u.id}"></div>`:`<div class="available">Available<br><small>Ready for assignment</small></div>`}</div>`;
+      return `<div class="bay-slot ${u?'occupied':'empty'}" ${u?`data-qr="${esc(u.qr_code)}"`:''}><div class="slot-head"><span class="slot-tag">${sec.replace('_',' ')}</span><i class="slot-dot"></i></div>${u?`<div class="slot-serial${faultSerialClass(u)}">${esc((u.serial_number||'----').slice(-4))}<small>${u.ups_type}</small></div><div class="slot-stage">${esc(u.current_stage||'')}</div><div class="slot-timer" data-t="${u.id}"></div>`:`<div class="available">Available<br><small>Ready for assignment</small></div>`}</div>`;
     }).join('')}</div></div>`;
   }).join('');
   $$('[data-qr]').forEach(x=>x.onclick=()=>directScan(x.dataset.qr));
@@ -22,3 +22,5 @@ async function render(){
 }
 async function ticks(){for(const el of $$('[data-t]')){const u=data.u.find(x=>x.id===el.dataset.t);el.textContent=await timerText(u)}}
 render().catch(e=>showToast(e.message)); setInterval(()=>data&&ticks(),1000);
+
+realtimeWatch('bays',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],()=>render());

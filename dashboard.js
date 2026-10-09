@@ -76,7 +76,7 @@ async function renderBays(){
         const u=unitForOcc(data,activeOcc(data,b.id,sec));
         return `<div class="bay-slot ${u?'occupied':'empty'}" ${u?`data-qr="${esc(u.qr_code)}"`:''}>
           <div class="slot-head"><span class="slot-tag">${sec.replace('_',' ')}</span><i class="slot-dot"></i></div>
-          ${u?`<div class="slot-serial">${esc((u.serial_number||'----').slice(-4))}<small>${u.ups_type}</small></div><div class="slot-stage">${esc(u.current_stage||'')}</div><div class="slot-timer" data-timer="${u.id}"></div>`:`<div class="available">Available<br><small>Ready for assignment</small></div>`}
+          ${u?`<div class="slot-serial${faultSerialClass(u)}">${esc((u.serial_number||'----').slice(-4))}<small>${u.ups_type}</small></div><div class="slot-stage">${esc(u.current_stage||'')}</div><div class="slot-timer" data-timer="${u.id}"></div>`:`<div class="available">Available<br><small>Ready for assignment</small></div>`}
         </div>`;
       }).join('')
     }</div></div>`;
@@ -89,11 +89,17 @@ async function refreshTimers(){
     const u=data.u.find(x=>x.id===el.dataset.timer); el.textContent=await timerText(u);
   }
 }
+
+function weekBounds(month,w){const [y,m]=month.split('-').map(Number),start=(w-1)*7+1,end=Math.min(w*7,new Date(y,m,0).getDate());return {start,end}}
+function renderWeekly(){const month=ym(),w=Number($('#weekSelect')?.value||1),{start,end}=weekBounds(month,w);const types=['3X','2X','STS'];$('#weeklyGraph').innerHTML=types.map(t=>{const monthly=counts(data,t,month),target=Math.round(monthly.target/5),actual=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===month&&Number(u.completed_at.slice(8,10))>=start&&Number(u.completed_at.slice(8,10))<=end).length,max=Math.max(target,actual,1),tp=Math.round(target/max*100),ap=Math.round(actual/max*100);return `<div class=\"week-type\"><div class=\"week-name\">${t}<small>${start}-${end}</small></div><div class=\"week-bars\"><div class=\"weekbar target\" style=\"--h:${tp}%\"><span>${target}</span></div><div class=\"weekbar actual\" style=\"--h:${ap}%\"><span>${actual}</span></div></div><div class=\"week-legend\"><span>Target</span><span>Completed</span></div></div>`}).join('')}
+
 async function boot(){
   const qr=new URLSearchParams(location.search).get('qr');
   if(qr){ location.replace(`scan.html?qr=${encodeURIComponent(qr)}`); return; }
-  data=await loadCore();const ar=await sb.from('tqr_ui_assets').select('*');if(!ar.error)(ar.data||[]).forEach(x=>{if(x.asset_key.startsWith('kpi_'))kpiAssets[x.asset_key.slice(4)]=x.public_url});renderKpis(); renderPerformance(); renderToday(); await renderBays();
+  data=await loadCore();const ar=await sb.from('tqr_ui_assets').select('*');if(!ar.error)(ar.data||[]).forEach(x=>{if(x.asset_key.startsWith('kpi_'))kpiAssets[x.asset_key.slice(4)]=x.public_url});renderKpis(); renderPerformance(); renderToday(); await renderBays(); await renderWeekly();
   setInterval(refreshTimers,1000);
 }
-$('#prevMonth').onclick=()=>shiftMonth(-1); $('#nextMonth').onclick=()=>shiftMonth(1);
+$('#prevMonth').onclick=()=>shiftMonth(-1); $('#nextMonth').onclick=()=>shiftMonth(1); $('#weekSelect').onchange=renderWeekly;
 boot().catch(e=>showToast(e.message));
+
+realtimeWatch('dashboard',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history','tqr_monthly_targets'],async()=>{data=await loadCore();renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()});

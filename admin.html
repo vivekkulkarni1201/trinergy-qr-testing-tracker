@@ -1,10 +1,10 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin</title>
-<link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script></head>
+<link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="config.js"></script></head>
 <body><header id="topbar"></header><main>
 <div class="page-title"><div><h1>Admin Control Center</h1><div class="muted">Dashboard remains isolated from Admin changes</div></div></div>
 <div class="admin-tabs">
 <button class="admin-tab active" data-pane="targets">Targets</button>
-<button class="admin-tab" data-pane="historical">Historical Data</button>
+<button class="admin-tab" data-pane="historical">Historical Data</button><button class="admin-tab" data-pane="weekly">Weekly Targets</button>
 <button class="admin-tab" data-pane="serials">Serial Numbers</button>
 <button class="admin-tab" data-pane="engineers">Engineers</button>
 <button class="admin-tab" data-pane="bays">Test Bays</button>
@@ -19,13 +19,14 @@
 <div class="panel admin-pane" id="pane-historical">
 <div class="panel-head"><h2>Historical / Monthly Data</h2><span class="muted">Past month target, received and completed data</span></div>
 <div class="panel-body">
-<div class="form-grid hist-top"><label>Month<input id="histMonth" type="month"></label><label>Notes<input id="histNotes" placeholder="Optional note"></label></div>
+<div class="form-grid hist-top"><label>Month<input id="histMonth" type="month" min="2024-01"></label><label>Notes<input id="histNotes" placeholder="Optional note"></label></div>
 <div class="hist-grid">
 <div class="admin-tile"><h3>3X</h3><label>Target<input id="h3Target" type="number" min="0"></label><label>Received<input id="h3Received" type="number" min="0"></label><label>Completed<input id="h3Completed" type="number" min="0"></label></div>
 <div class="admin-tile"><h3>2X</h3><label>Target<input id="h2Target" type="number" min="0"></label><label>Received<input id="h2Received" type="number" min="0"></label><label>Completed<input id="h2Completed" type="number" min="0"></label></div>
 <div class="admin-tile"><h3>STS</h3><label>Target<input id="hsTarget" type="number" min="0"></label><label>Received<input id="hsReceived" type="number" min="0"></label><label>Completed<input id="hsCompleted" type="number" min="0"></label></div>
-</div><br><button id="saveHistorical" class="green">Save Historical Month</button>
+</div><br><button id="saveHistorical" class="green">Save Historical Month</button> <input id="histExcel" type="file" accept=".xlsx,.xls,.csv"><button id="importHistorical">Import Excel</button><p class="muted">Excel columns: Month, 3X Target, 3X Received, 3X Completed, 2X Target, 2X Received, 2X Completed, STS Target, STS Received, STS Completed, Notes</p>
 <div id="historicalList"></div></div></div>
+<div class="panel admin-pane" id="pane-weekly"><div class="panel-head"><h2>Weekly Targets</h2><span class="muted">Optional manual targets for dashboard weekly graph</span></div><div class="panel-body"><div class="form-grid"><label>Month<input id="weekMonth" type="month"></label><label>Week<select id="weekNo"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label><label>3X Target<input id="w3" type="number"></label><label>2X Target<input id="w2" type="number"></label><label>STS Target<input id="ws" type="number"></label></div><br><button id="saveWeekly">Save Weekly Target</button></div></div>
 <div class="panel admin-pane" id="pane-serials"><div class="panel-head"><h2>Next Serial Counters</h2></div><div class="panel-body"><div class="admin-grid" id="serials"></div></div></div>
 <div class="panel admin-pane" id="pane-engineers"><div class="panel-head"><h2>Testing Engineers</h2></div><div class="panel-body"><div class="scan-row"><input id="engName" placeholder="Engineer name"><input id="engId" placeholder="Employee ID"><button id="addEngineer">Add / Reactivate</button></div><table class="table"><thead><tr><th>Name</th><th>Employee ID</th><th>Status</th></tr></thead><tbody id="engineerTable"></tbody></table></div></div>
 <div class="panel admin-pane" id="pane-bays">

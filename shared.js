@@ -19,12 +19,14 @@ function navHtml(active){
     ['dashboard','index.html','⌂','Dashboard'],
     ['active','active.html','☷','Active UPS'],
     ['bays','bays.html','▦','Test Bay Monitoring'],
+    ['parking','parking.html','P','Parking Area'],
     ['buffer','buffer.html','◇','Buffer Stock'],
+    ['faulty','faulty.html','!','Faulty Area'],
     ['qrgen','qr.html','⌗','QR Generator'],
     ['admin','admin.html','⚙','Admin'],
     ['reports','reports.html','▥','Reports']
   ];
-  return `<div class="brand"><span class="brandmark">◆</span><div><b>TRINERGY</b><small>QR TESTING TRACKER</small></div></div>
+  return `<div class="brand brand-rich"><div class="brand-watermark"></div><span class="brandmark">◆</span><div><b>TRINERGY</b><small>QR TESTING TRACKER</small></div></div>
   <nav class="navtabs">${items.map(([id,href,icon,label])=>`<a class="navtab ${active===id?'active':''}" href="${href}"><span>${icon}</span>${label}</a>`).join('')}</nav>
   <div class="navright"><span class="live-dot"></span><span class="live-label">Live</span><div class="clockbox"><span id="dateNow"></span><b id="timeNow"></b></div></div>`;
 }
@@ -81,3 +83,16 @@ async function fetchUnitByQr(qr){
   return r.data;
 }
 function directScan(qr){ location.href = `scan.html?qr=${encodeURIComponent(qr)}`; }
+
+
+function mountScanHeader(){
+  const e=$('#topbar'); if(!e)return;
+  e.innerHTML=`<div class="brand brand-rich"><div class="brand-watermark"></div><span class="brandmark">◆</span><div><b>TRINERGY</b><small>UPS TEST CONTROL</small></div></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`;
+}
+let _rtTimers={};
+function realtimeWatch(name,tables,callback,delay=180){
+  const ch=sb.channel('rt-'+name+'-'+Math.random().toString(36).slice(2,7));
+  tables.forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(_rtTimers[name]);_rtTimers[name]=setTimeout(callback,delay)}));
+  ch.subscribe(); return ch;
+}
+function faultSerialClass(u){return u?.faulted?' faulted-serial':''}

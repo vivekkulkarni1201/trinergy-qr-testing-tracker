@@ -24,3 +24,5 @@ async function ticks(){for(const el of $$('[data-t]')){const u=data.u.find(x=>x.
 render().catch(e=>showToast(e.message)); setInterval(()=>data&&ticks(),1000);
 
 realtimeWatch('bays',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],()=>render());
+
+startPolling('bays',()=>boot().catch(()=>{}),2500);

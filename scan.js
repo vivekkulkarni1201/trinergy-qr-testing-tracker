@@ -33,7 +33,7 @@ async function renderUnit(){
   <label class="engineer-box">Authorized Engineer<select id="engineer"><option value="">Select Engineer</option>${eng.map(e=>`<option value="${e.id}" data-name="${esc(e.engineer_name)}" ${(currentEngineer&&(currentEngineer.id===e.id||currentEngineer.name===e.engineer_name))?'selected':''}>${esc(e.engineer_name)}${e.employee_id?' · '+esc(e.employee_id):''}</option>`).join('')}</select></label></div>
   ${run?`<div class="timer-lock"><b>⏱ Timed Event Running</b><span>${run==='core_heatrun'?'Core Heatrun':run.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())} is active. Other stage changes are locked until timer is completed or UPS is marked faulty.</span></div>`:''}
   ${isStock?`<div class="buffer-banner"><b>◇ BUFFER STOCK</b><span>Testing is complete. Only <strong>To Finishing / Completed</strong> is available.</span></div>`:''}${current.parked?`<div class="parking-banner"><b>P PARKING AREA</b><span>This UPS is temporarily parked. Resume testing to continue from ${esc(current.current_stage||'current stage')}.</span></div>`:''}${current.faulted&&current.status==='RTA'?`<div class="fault-banner"><b>! FAULTY AREA</b><span>UPS is out of testing count. Use Faulty Area page for controlled re-entry.</span></div>`:''}
-  <div class="steps mobile-steps">${steps.map(x=>`<div class="step ${x[1]?'done':''}">${x[1]?'✓ ':''}${x[0]}</div>`).join('')}</div>
+  <div class="steps mobile-steps">${steps.map(x=>{const locked=!!run&&!x[1]&&x[0]!=='Heatrun';return `<div class="step ${x[1]?'done':''} ${locked?'stage-locked':''}">${x[1]?'✓ ':locked?'🔒 ':''}${x[0]}</div>`}).join('')}</div>
   <div id="actions" class="actions stage-actions"></div></div>`;
  $('#engineer').onchange=e=>{const o=e.target.selectedOptions[0];currentEngineer=e.target.value?{id:e.target.value,name:o.dataset.name}:null;if(currentEngineer)localStorage.setItem('tqr_last_engineer',JSON.stringify(currentEngineer));renderActions()};
  renderActions();
@@ -50,8 +50,8 @@ function heatBox(k,label,s,run){
 }
 function renderActions(){
  const s=sstate(),a=[],run=runningHeat(s);
- if(current.status==='RTA'){a.push(`<div class="action fault-card final-only"><h4>Faulty Area</h4><p>This UPS is removed from Under Testing.</p><a class="btn warn" href="faulty.html">Open Faulty Area</a></div>`);$('#actions').innerHTML=a.join('');return;}
- if(current.parked){a.push(`<div class="action parking-card final-only"><h4>Parking Area</h4><button class="green big-action" onclick="resumeFromParking()">RESUME TESTING</button></div>`);$('#actions').innerHTML=a.join('');return;}
+ if(current.status==='RTA'){a.push(`<div class="action fault-card final-only"><h4>Faulty Area</h4><p>This UPS is removed from Under Testing.</p><a class="btn danger" href="faulty.html">OPEN FAULTY AREA</a></div>`);$('#actions').innerHTML=a.join('');return;}
+ if(current.parked){a.push(`<div class="action parking-card final-only"><h4>Parking Area</h4><p>Select an empty compatible bay before resuming.</p><a class="btn green big-action" href="parking.html">OPEN PARKING AREA</a></div>`);$('#actions').innerHTML=a.join('');return;}
  if(current.status==='STOCK'){
    a.push(`<div class="action final-only"><h4>Buffer Stock Exit</h4><button class="green big-action" onclick="finishFromStock()">TO FINISHING / COMPLETED</button></div>`);
    $('#actions').innerHTML=a.join('');return;
@@ -87,10 +87,12 @@ async function finishFromStock(){if(!needEng())return;const now=nowIso();await s
 async function markFaulty(){if(!needEng())return;if(!confirm('Mark this UPS as Faulty / RTA?'))return;const now=nowIso();await sb.from('tqr_units').update({status:'RTA',current_stage:'FAULTY LOCATION',parked:false,faulted:true,faulted_at:now}).eq('id',current.id);await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);await log('FAULT','FAULTY LOCATION','FAIL');showToast('UPS marked Faulty / RTA');reload()}
 
 async function moveToParking(){if(!needEng())return;const now=nowIso();await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);const r=await sb.from('tqr_units').update({parked:true,parked_at:now,parked_from_stage:current.current_stage}).eq('id',current.id);if(r.error)return showToast(r.error.message);await log('MOVE','PARKING AREA','PASS');showToast('UPS moved to Parking Area');reload()}
-async function resumeFromParking(){if(!needEng())return;const r=await sb.from('tqr_units').update({parked:false,parked_at:null,current_stage:current.parked_from_stage||current.current_stage}).eq('id',current.id);if(r.error)return showToast(r.error.message);await log('RE-ENTRY','FROM PARKING AREA','PASS');showToast('Parking released — continue testing');reload()}
+async function resumeFromParking(){showToast('Resume from Parking Area and select an empty compatible bay first')}
 
 Object.assign(window,{receive,startLV,hipot,startHV,hvPass,heatStart,heatPass,params,exitUnit,finishFromStock,markFaulty,moveToParking,resumeFromParking});
 $('#loadQr').onclick=openQR;$('#openLive').onclick=()=>{const q=$('#liveUps').value;if(!q)return;$('#qr').value=q;openQR()};$('#qr').onkeydown=e=>{if(e.key==='Enter')openQR()};
 (async()=>{await loadDropdown();const q=new URLSearchParams(location.search).get('qr');if(q){$('#qr').value=q;openQR()}})().catch(e=>showToast(e.message));
 
 realtimeWatch('scan',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],async()=>{if(current){const q=current.qr_code;const eng=currentEngineer;current=await fetchUnitByQr(q);currentEngineer=eng;await renderUnit()}await loadDropdown()});
+
+startPolling('scan',async()=>{try{if(current){const q=current.qr_code,eng=currentEngineer;current=await fetchUnitByQr(q);currentEngineer=eng;await renderUnit()}await loadDropdown()}catch(e){}},2200);

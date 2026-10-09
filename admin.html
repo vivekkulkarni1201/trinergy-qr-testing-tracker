@@ -12,7 +12,7 @@
 <button class="admin-tab" data-pane="timers">Timers</button>
 <button class="admin-tab" data-pane="images">KPI Images</button>
 <button class="admin-tab" data-pane="oldserial">Old Serial Re-entry</button>
-<button class="admin-tab" data-pane="history">Scan History</button>
+<button class="admin-tab" data-pane="reasons">Gap Reasons</button><button class="admin-tab" data-pane="history">Scan History</button>
 <a class="admin-tab qr-link" href="qr.html">QR Generator ↗</a>
 </div>
 <div class="panel admin-pane active" id="pane-targets"><div class="panel-head"><h2>Monthly Targets</h2></div><div class="panel-body"><div class="form-grid"><label>Month<input id="targetMonth" type="month"></label><label>3X Target<input id="tg3x" type="number"></label><label>2X Target<input id="tg2x" type="number"></label><label>STS Target<input id="tgsts" type="number"></label></div><br><button id="saveTargets">Save Targets</button></div></div>
@@ -50,5 +50,6 @@
 <label>Completed / Stock Date<input id="oldCompleted" type="date"></label>
 <label>QR / Tracker ID (optional)<input id="oldQr" placeholder="auto if blank"></label>
 </div><br><button id="saveOldSerial" class="green">Add Till-Date UPS</button></div></div>
+<div class="panel admin-pane" id="pane-reasons"><div class="panel-head"><h2>Input Distribution Gap Reasons</h2><span class="muted">Add/edit A, B, C, D, E... used in Reports</span></div><div class="panel-body"><div class="scan-row"><input id="reasonCode" maxlength="4" placeholder="Code e.g. A"><input id="reasonText" placeholder="Reason description"><button id="addReason">Add / Update Reason</button></div><table class="table"><thead><tr><th>Code</th><th>Reason</th><th>Active</th><th>Save</th></tr></thead><tbody id="reasonBody"></tbody></table></div></div>
 <div class="panel admin-pane" id="pane-history"><div class="panel-head"><h2>QR Scan / Stage History</h2></div><div class="panel-body"><div class="scan-row"><input id="historySearch" placeholder="Serial / QR / Engineer / Stage"><button id="searchHistory">Search</button></div><table class="table"><thead><tr><th>Date/Time</th><th>Serial/QR</th><th>Stage</th><th>Engineer</th><th>Result</th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
 </main><div id="toast"></div><script src="shared.js"></script><script src="admin.js"></script></body></html>

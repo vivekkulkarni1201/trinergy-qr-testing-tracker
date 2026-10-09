@@ -14,3 +14,5 @@ async function boot(){
 window.finish=finish; boot().catch(e=>showToast(e.message));
 
 realtimeWatch('buffer',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],()=>boot());
+
+startPolling('buffer',()=>boot().catch(()=>{}),2500);

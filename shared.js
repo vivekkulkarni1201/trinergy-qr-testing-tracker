@@ -26,7 +26,7 @@ function navHtml(active){
     ['admin','admin.html','⚙','Admin'],
     ['reports','reports.html','▥','Reports']
   ];
-  return `<div class="brand brand-rich"><div class="brand-watermark"></div><span class="brandmark">◆</span><div><b>TRINERGY</b><small>QR TESTING TRACKER</small></div></div>
+  return `<div class="brand brand-rich"><span class="brandmark">◆</span><div><b>TRINERGY</b><small>QR TESTING TRACKER</small></div></div>
   <nav class="navtabs">${items.map(([id,href,icon,label])=>`<a class="navtab ${active===id?'active':''}" href="${href}"><span>${icon}</span>${label}</a>`).join('')}</nav>
   <div class="navright"><span class="live-dot"></span><span class="live-label">Live</span><div class="clockbox"><span id="dateNow"></span><b id="timeNow"></b></div></div>`;
 }
@@ -47,14 +47,9 @@ async function table(name, select='*'){
   return r.data || [];
 }
 async function loadCore(){
-  const [u,t,b,o,h] = await Promise.all([
-    table('tqr_units'),
-    table('tqr_monthly_targets'),
-    table('tqr_bays'),
-    table('tqr_bay_occupancy'),
-    table('tqr_stage_history')
-  ]);
-  return {u,t,b,o:o.filter(x=>!x.released_at),h};
+  const [u,t,b,o,h,st]=await Promise.all([table('tqr_units'),table('tqr_monthly_targets'),table('tqr_bays'),table('tqr_bay_occupancy'),table('tqr_stage_history'),table('tqr_stage_state')]);
+  const sm=Object.fromEntries(st.map(x=>[x.unit_id,x]));u.forEach(x=>x.tqr_stage_state=sm[x.id]||null);
+  return {u,t,b,o:o.filter(x=>!x.released_at),h,st};
 }
 function monthOf(v){ return v ? String(v).slice(0,7) : ''; }
 function counts(data,type,m){
@@ -87,7 +82,7 @@ function directScan(qr){ location.href = `scan.html?qr=${encodeURIComponent(qr)}
 
 function mountScanHeader(){
   const e=$('#topbar'); if(!e)return;
-  e.innerHTML=`<div class="brand brand-rich"><div class="brand-watermark"></div><span class="brandmark">◆</span><div><b>TRINERGY</b><small>UPS TEST CONTROL</small></div></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`;
+  e.innerHTML=`<div class="brand brand-rich"><span class="brandmark">◆</span><div><b>TRINERGY</b><small>UPS TEST CONTROL</small></div></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`;
 }
 let _rtTimers={};
 function realtimeWatch(name,tables,callback,delay=180){
@@ -96,3 +91,6 @@ function realtimeWatch(name,tables,callback,delay=180){
   ch.subscribe(); return ch;
 }
 function faultSerialClass(u){return u?.faulted?' faulted-serial':''}
+function runningTimedEvent(u){const s=stateOf(u)||{};return ['core_heatrun','booster_1','booster_2','booster_3'].find(k=>s[k+'_started']&&!s[k+'_passed'])||null}
+function timedEventLabel(k){return k==='core_heatrun'?'Core Heatrun':k?k.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase()):''}
+function startPolling(name,callback,ms=2500){if(window['_poll_'+name])clearInterval(window['_poll_'+name]);window['_poll_'+name]=setInterval(()=>{if(document.visibilityState==='visible')callback()},ms)}

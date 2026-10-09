@@ -4,9 +4,63 @@ function secFor(u,st){if(u.ups_type==='STS')return st==='CORE_HEATRUN'?'STS_HEAT
 function fillBay(id){const u=units.find(x=>x.id===id),st=$('#rs_'+id).value,sec=secFor(u,st),free=coreData.b.filter(b=>b.active!==false&&((sec==='LV'||sec==='HV')?b.bay_kind==='CORE':sec==='STS_TEST'?b.bay_kind==='STS_TEST':b.bay_kind==='STS_HEATRUN')&&!coreData.o.some(o=>o.bay_id===b.id&&o.section===sec));$('#rb_'+id).innerHTML='<option value="">Select empty compatible bay...</option>'+free.map(b=>`<option value="${b.id}|${sec}">${esc(b.bay_name)} · ${sec}</option>`).join('')}
 async function boot(){
  const prevStage={},prevBay={};$$('[id^="rs_"]').forEach(x=>prevStage[x.id]=x.value);$$('[id^="rb_"]').forEach(x=>prevBay[x.id]=x.value);
- coreData=await loadCore();units=coreData.u.filter(u=>u.status==='RTA'||(u.faulted&&u.current_stage==='FAULTY LOCATION'));
+ coreData=await loadCore();units=coreData.u.filter(u=>u.status==='RTA'||u.faulted);
  $('#faultBody').innerHTML=units.map(u=>`<tr><td class="faulted-serial">${esc(u.serial_number||u.qr_code)}</td><td>${u.ups_type}</td><td>${u.faulted_at?new Date(u.faulted_at).toLocaleString():'—'}</td><td>${esc(u.current_stage)}</td><td><select id="rs_${u.id}" onchange="fillBay('${u.id}')">${stageOptions(u).map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><br><select id="rb_${u.id}" class="fault-bay-select"></select><br><button class="danger" onclick="reenter('${u.id}')">RE-ENTER TESTING</button></td></tr>`).join('')||'<tr><td colspan="5">No faulty UPS.</td></tr>';
  units.forEach(u=>{const se=$('#rs_'+u.id);if(prevStage['rs_'+u.id]&&[...se.options].some(o=>o.value===prevStage['rs_'+u.id]))se.value=prevStage['rs_'+u.id];fillBay(u.id);const be=$('#rb_'+u.id),v=prevBay['rb_'+u.id];if(v&&be&&[...be.options].some(o=>o.value===v))be.value=v});
 }
-async function reenter(id){const u=units.find(x=>x.id===id),stage=$('#rs_'+id).value,bv=$('#rb_'+id).value;if(!bv)return showToast('Select an empty compatible bay');const [bay_id,section]=bv.split('|'),p={},zero=k=>{p[k+'_started']=false;p[k+'_started_at']=null;p[k+'_passed']=false;p[k+'_passed_at']=null};if(stage==='LV'){p.lv_passed=false;p.lv_passed_at=null;p.hipot_passed=false;p.hipot_passed_at=null;p.hv_started=false;p.hv_started_at=null;p.hv_passed=false;p.hv_passed_at=null;zero('core_heatrun');zero('booster_1');zero('booster_2');zero('booster_3');p.parameters_480v_saved=false;p.parameters_480v_saved_at=null}else if(stage==='HV'){p.hv_started=false;p.hv_started_at=null;p.hv_passed=false;p.hv_passed_at=null;zero('core_heatrun');zero('booster_1');zero('booster_2');zero('booster_3');p.parameters_480v_saved=false;p.parameters_480v_saved_at=null}else if(stage==='CORE_HEATRUN'){zero('core_heatrun');zero('booster_1');zero('booster_2');zero('booster_3');p.parameters_480v_saved=false;p.parameters_480v_saved_at=null}else if(stage==='BOOSTER_1'){zero('booster_1');zero('booster_2');zero('booster_3');p.parameters_480v_saved=false;p.parameters_480v_saved_at=null}else if(stage==='BOOSTER_2'){zero('booster_2');zero('booster_3');p.parameters_480v_saved=false;p.parameters_480v_saved_at=null}else if(stage==='BOOSTER_3'){zero('booster_3');p.parameters_480v_saved=false;p.parameters_480v_saved_at=null}else if(stage==='PARAMETERS_480V'){p.parameters_480v_saved=false;p.parameters_480v_saved_at=null}let r=await sb.from('tqr_stage_state').update(p).eq('unit_id',id);if(r.error)return showToast(r.error.message);r=await sb.from('tqr_bay_occupancy').insert({bay_id,section,unit_id:id});if(r.error)return showToast(r.error.message);await sb.from('tqr_units').update({status:'UNDER_TESTING',current_stage:'RE-ENTRY FROM '+stage,parked:false}).eq('id',id);await sb.from('tqr_stage_history').insert({unit_id:id,action:'RE-ENTRY',stage:'RESTART FROM '+stage,result:'IN_PROGRESS',notes:`Assigned to ${section}`});showToast('Moved to selected bay');boot()}
+async function reenter(id){
+ const u=units.find(x=>x.id===id),stage=$('#rs_'+id).value,bv=$('#rb_'+id).value;
+ if(!u)return;
+ if(!bv)return showToast('Select an empty compatible bay');
+ const [bay_id,section]=bv.split('|'),p={},now=nowIso(),
+       zero=k=>{p[k+'_started']=false;p[k+'_started_at']=null;p[k+'_passed']=false;p[k+'_passed_at']=null};
+
+ if(stage==='LV'){
+   p.lv_passed=false;p.lv_passed_at=null;p.hipot_passed=false;p.hipot_passed_at=null;
+   p.hv_started=false;p.hv_started_at=null;p.hv_passed=false;p.hv_passed_at=null;
+   zero('core_heatrun');zero('booster_1');zero('booster_2');zero('booster_3');
+   p.parameters_480v_saved=false;p.parameters_480v_saved_at=null;
+ }else if(stage==='HV'){
+   p.hv_started=false;p.hv_started_at=null;p.hv_passed=false;p.hv_passed_at=null;
+   zero('core_heatrun');zero('booster_1');zero('booster_2');zero('booster_3');
+   p.parameters_480v_saved=false;p.parameters_480v_saved_at=null;
+ }else if(stage==='CORE_HEATRUN'){
+   zero('core_heatrun');zero('booster_1');zero('booster_2');zero('booster_3');
+   p.parameters_480v_saved=false;p.parameters_480v_saved_at=null;
+ }else if(stage==='BOOSTER_1'){
+   zero('booster_1');zero('booster_2');zero('booster_3');
+   p.parameters_480v_saved=false;p.parameters_480v_saved_at=null;
+ }else if(stage==='BOOSTER_2'){
+   zero('booster_2');zero('booster_3');p.parameters_480v_saved=false;p.parameters_480v_saved_at=null;
+ }else if(stage==='BOOSTER_3'){
+   zero('booster_3');p.parameters_480v_saved=false;p.parameters_480v_saved_at=null;
+ }else if(stage==='PARAMETERS_480V'){
+   p.parameters_480v_saved=false;p.parameters_480v_saved_at=null;
+ }
+
+ let r=await sb.from('tqr_stage_state').update(p).eq('unit_id',id);
+ if(r.error)return showToast(r.error.message);
+
+ // clear any orphan active occupancy before assigning the selected one
+ r=await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',id).is('released_at',null);
+ if(r.error)return showToast(r.error.message);
+
+ r=await sb.from('tqr_bay_occupancy').insert({bay_id,section,unit_id:id});
+ if(r.error)return showToast('Bay assignment failed: '+r.error.message);
+
+ r=await sb.from('tqr_units')
+   .update({status:'UNDER_TESTING',current_stage:'RE-ENTRY FROM '+stage,parked:false})
+   .eq('id',id);
+ if(r.error){
+   await sb.from('tqr_bay_occupancy').update({released_at:nowIso()}).eq('unit_id',id).is('released_at',null);
+   return showToast(r.error.message);
+ }
+
+ await sb.from('tqr_stage_history').insert({
+   unit_id:id,action:'RE-ENTRY',stage:'RESTART FROM '+stage,result:'IN_PROGRESS',
+   notes:`Assigned to ${section}`
+ });
+ showToast('UPS moved from Faulty Area to selected bay');
+ await boot();
+}
 Object.assign(window,{reenter,fillBay});boot().catch(e=>showToast(e.message));realtimeWatch('faulty',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],boot);

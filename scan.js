@@ -87,7 +87,43 @@ async function heatPass(k){if(!needEng())return;const s=sstate(),t=await getTime
 async function params(){if(!needEng())return;await sb.from('tqr_stage_state').update({parameters_480v_saved:true,parameters_480v_saved_at:nowIso()}).eq('unit_id',current.id);await sb.from('tqr_units').update({current_stage:'480V / PARAMETERS SAVED'}).eq('id',current.id);await log('PASS','480V / PARAMETERS');reload()}
 async function exitUnit(status){if(!needEng())return;const now=nowIso();await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);const p=status==='COMPLETED'?{status,current_stage:'TO FINISHING / COMPLETED',completed_at:now}:{status,current_stage:'BUFFER STOCK',stock_at:now};await sb.from('tqr_units').update(p).eq('id',current.id);await log('EXIT',status==='COMPLETED'?'TO FINISHING':'BUFFER STOCK');reload()}
 async function finishFromStock(){if(!needEng())return;const now=nowIso();await sb.from('tqr_units').update({status:'COMPLETED',current_stage:'TO FINISHING / COMPLETED',completed_at:now}).eq('id',current.id);await log('EXIT','TO FINISHING FROM BUFFER STOCK');showToast('Moved to Finishing');reload()}
-async function markFaulty(){if(!needEng())return;if(!confirm('Mark this UPS as Faulty / RTA?'))return;const now=nowIso();await sb.from('tqr_units').update({status:'RTA',current_stage:'FAULTY LOCATION',parked:false,faulted:true,faulted_at:now}).eq('id',current.id);await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);await log('FAULT','FAULTY LOCATION','FAIL');showToast('UPS marked Faulty / RTA');reload()}
+async function markFaulty(){
+ if(!needEng())return;
+ if(!confirm('Mark this UPS as Faulty / RTA?'))return;
+ const now=nowIso(), st=sstate(), run=runningHeat(st);
+
+ // Stop any active timed event first.
+ if(run){
+   const stop={};
+   stop[run+'_started']=false;
+   stop[run+'_started_at']=null;
+   const rr=await sb.from('tqr_stage_state').update(stop).eq('unit_id',current.id);
+   if(rr.error)return showToast('Could not stop timer: '+rr.error.message);
+ }
+
+ // IMPORTANT: update UPS status first and CHECK the response.
+ // Do not release the bay if the status change fails.
+ const ur=await sb.from('tqr_units')
+   .update({status:'RTA',current_stage:'FAULTY LOCATION',parked:false,faulted:true,faulted_at:now})
+   .eq('id',current.id)
+   .select()
+   .single();
+ if(ur.error)return showToast('Fault move failed: '+ur.error.message);
+
+ // Only after successful status move, release the active physical bay.
+ const br=await sb.from('tqr_bay_occupancy')
+   .update({released_at:now})
+   .eq('unit_id',current.id)
+   .is('released_at',null);
+ if(br.error)return showToast('UPS is Faulty but bay release failed: '+br.error.message);
+
+ await log('FAULT','FAULTY LOCATION','FAIL',run?`Timed event stopped: ${run}`:'Fault marked during testing');
+ clearInterval(timerTicker);
+ showToast('UPS moved to Faulty Area');
+ current=await fetchUnitByQr(current.qr_code);
+ await renderUnit();
+ await loadDropdown();
+}
 
 async function moveToParking(){if(!needEng())return;const now=nowIso();await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);const r=await sb.from('tqr_units').update({parked:true,parked_at:now,parked_from_stage:current.current_stage}).eq('id',current.id);if(r.error)return showToast(r.error.message);await log('MOVE','PARKING AREA','PASS');showToast('UPS moved to Parking Area');reload()}
 async function resumeFromParking(){showToast('Resume from Parking Area and select an empty compatible bay first')}

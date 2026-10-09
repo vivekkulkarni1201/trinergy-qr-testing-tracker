@@ -11,4 +11,4 @@ boot().catch(e=>showToast(e.message));
 
 realtimeWatch('active',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],()=>boot());
 
-startPolling('active',()=>boot().catch(()=>{}),2500);
+startPolling('active',()=>boot().catch(()=>{}),5000);

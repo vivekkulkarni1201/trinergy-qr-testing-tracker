@@ -17,6 +17,12 @@
     <div class="panel-head"><h2>♜ Test Bay Monitoring (Live)</h2><div class="legend"><span><i class="av"></i>Available</span><span><i class="oc"></i>Occupied</span><span><i class="tm"></i>Timed Event</span><a class="btn secondary" href="bays.html">View All Bays →</a></div></div>
     <div class="panel-body"><div id="bayGrid" class="bay-grid"></div></div>
   </div>
-<div class="panel weekly-panel"><div class="panel-head"><div><h2>Weekly Progress — This Month</h2><small class="muted">Target vs Completed for 3X / 2X / STS</small></div><select id="weekSelect"><option value="1">Week 1</option><option value="2">Week 2</option><option value="3">Week 3</option><option value="4">Week 4</option><option value="5">Week 5</option></select></div><div class="panel-body"><div id="weeklyGraph" class="weekly-graph"></div></div></div>
+<div class="panel weekly-panel">
+      <div class="panel-head">
+        <div><h2>Weekly Progress — Calendar Month</h2><small class="muted">3X / 2X / STS · Target vs Completed</small></div>
+        <div id="weeklyMonthLabel" class="date-chip"></div>
+      </div>
+      <div class="panel-body"><div id="weeklyGraph" class="weekly-month-grid"></div></div>
+    </div></div>
 </section>
 </main><div id="toast"></div><script src="shared.js"></script><script src="dashboard.js"></script></body></html>

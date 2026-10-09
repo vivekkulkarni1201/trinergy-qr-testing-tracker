@@ -72,6 +72,9 @@ function renderActions(){
   if(s.parameters_480v_saved)a.push(`<div class="action final-actions"><h4>Final Exit</h4><button class="green" onclick="exitUnit('COMPLETED')">TO FINISHING / COMPLETED</button><button class="warn" onclick="exitUnit('STOCK')">BUFFER STOCK</button></div>`);
  }
  if(current.status==='UNDER_TESTING'&&!run&&!current.parked)a.push(`<div class="action parking-card"><h4>Temporary Parking</h4><p>Free the current bay without losing testing history.</p><button class="purple" onclick="moveToParking()">MOVE TO PARKING AREA</button></div>`);
+ if(current.status!=='COMPLETED'&&current.status!=='STOCK'&&current.status!=='RTA'&&!current.parked&&!run){
+   a.push(`<div class="action fault-card"><h4>Fault / RTA</h4><p>Fault can be marked at any testing stage.</p><button class="danger" onclick="markFaulty()">MARK UPS FAULTY</button></div>`);
+ }
  $('#actions').innerHTML=a.join('');startTimerUi(s);
 }
 async function startLV(){if(!needEng())return;const b=await chooseCore('LV');if(!b)return;if(!current.serial_number){const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});if(r.error)return showToast(r.error.message)}const now=nowIso();let r=await sb.from('tqr_bay_occupancy').insert({bay_id:b.id,section:'LV',unit_id:current.id});if(r.error)return showToast(r.error.message);await sb.from('tqr_units').update({status:'UNDER_TESTING',current_stage:'LV TESTING IN PROGRESS',testing_started_at:now}).eq('id',current.id);await log('START','LV','IN_PROGRESS');reload()}
@@ -95,4 +98,14 @@ $('#loadQr').onclick=openQR;$('#openLive').onclick=()=>{const q=$('#liveUps').va
 
 realtimeWatch('scan',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],async()=>{if(current){const q=current.qr_code;const eng=currentEngineer;current=await fetchUnitByQr(q);currentEngineer=eng;await renderUnit()}await loadDropdown()});
 
-startPolling('scan',async()=>{try{if(current){const q=current.qr_code,eng=currentEngineer;current=await fetchUnitByQr(q);currentEngineer=eng;await renderUnit()}await loadDropdown()}catch(e){}},2200);
+let _scanSig='';
+startPolling('scan',async()=>{try{
+ if(current){
+   const fresh=await fetchUnitByQr(current.qr_code);
+   const fs=stateOf(fresh)||{};
+   const sig=JSON.stringify([fresh.status,fresh.current_stage,fresh.parked,fresh.faulted,fs]);
+   if(sig!==_scanSig){
+     _scanSig=sig;const eng=currentEngineer;current=fresh;currentEngineer=eng;await renderUnit();
+   }
+ }
+}catch(e){}},4500);

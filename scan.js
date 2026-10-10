@@ -40,7 +40,53 @@ async function renderUnit(){
 }
 function needEng(){if(!currentEngineer){showToast('Select ACTIVE engineer first');return false}return true}
 async function log(action,stage,result='PASS',notes=null){await sb.from('tqr_stage_history').insert({unit_id:current.id,action,stage,result,engineer_id:currentEngineer?.id||null,engineer_name:currentEngineer?.name||null,notes})}
-async function chooseCore(section){const d=await loadCore(),free=d.b.filter(b=>b.active!==false&&b.bay_kind==='CORE'&&!d.o.some(o=>o.bay_id===b.id&&o.section===section));if(!free.length){showToast('No '+section+' bay available');return null}const msg=free.map((b,i)=>`${i+1}. ${b.bay_name}`).join('\n'),n=prompt(`Select ${section} bay:\n${msg}`,'1');return free[Number(n)-1]||null}
+async function chooseCore(section){const d=await loadCore(),free=d.b.filter(b=>b.active!==false&&b.bay_kind==='CORE'&&!d.o.some(o=>o.bay_id===b.id&&o.section===section));if(!free.length){showToast('No '+section+' bay available');return null}
+async function activeOccupancy(){
+ const r=await sb.from('tqr_bay_occupancy').select('*,tqr_bays(*)').eq('unit_id',current.id).is('released_at',null).maybeSingle();
+ return r.error?null:r.data;
+}
+function stageNeedsSection(){
+ const st=(current.current_stage||'').toUpperCase();
+ if(current.ups_type==='STS') return st.includes('HEATRUN')?'STS_HEATRUN':'STS_TEST';
+ if(st.includes('LV')||st.includes('HI-POT')||!sstate().hipot_passed) return 'LV';
+ return 'HV';
+}
+async function chooseCompatible(section){
+ const d=await loadCore();
+ let free=[];
+ if(current.ups_type==='STS'){
+   const kind=section==='STS_HEATRUN'?'STS_HEATRUN':'STS_TEST';
+   free=d.b.filter(b=>b.active!==false&&b.bay_kind===kind&&!d.o.some(o=>o.bay_id===b.id&&o.section===section));
+ }else{
+   free=d.b.filter(b=>b.active!==false&&b.bay_kind==='CORE'&&!d.o.some(o=>o.bay_id===b.id&&o.section===section));
+ }
+ if(!free.length){showToast('No compatible empty bay available');return null}
+ const msg=free.map((b,i)=>`${i+1}. ${b.bay_name} · ${section.replace('_',' ')}`).join('\n');
+ const n=prompt(`Select empty compatible bay:\n${msg}`,'1');
+ return free[Number(n)-1]?{bay:free[Number(n)-1],section}:null;
+}
+async function assignBayOnly(){
+ if(!needEng())return;
+ const section=stageNeedsSection(),pick=await chooseCompatible(section);if(!pick)return;
+ const r=await sb.from('tqr_bay_occupancy').insert({bay_id:pick.bay.id,section,unit_id:current.id});
+ if(r.error)return showToast(r.error.message);
+ await log('ASSIGN','BAY ALLOCATION','IN_PROGRESS',`${pick.bay.bay_name} · ${section}`);
+ showToast('Bay assigned. Testing can continue.');
+ await reload();
+}
+async function requireBay(section=null){
+ const occ=await activeOccupancy();
+ if(!occ){showToast('Bay allocation required before changing stage');return null}
+ if(section && occ.section!==section){showToast(`Move UPS to ${section.replace('_',' ')} section before this stage`);return null}
+ if(current.ups_type==='STS'){
+   if(section==='STS_TEST' && occ.section!=='STS_TEST')return null;
+   if(section==='STS_HEATRUN' && occ.section!=='STS_HEATRUN')return null;
+ }else if(['STS_TEST','STS_HEATRUN'].includes(occ.section)){
+   showToast('2X/3X cannot use STS bays');return null;
+ }
+ return occ;
+}
+const msg=free.map((b,i)=>`${i+1}. ${b.bay_name}`).join('\n'),n=prompt(`Select ${section} bay:\n${msg}`,'1');return free[Number(n)-1]||null}
 async function reload(){current=await fetchUnitByQr(current.qr_code);await renderUnit();await loadDropdown()}
 function heatBox(k,label,s,run){
  if(s[k+'_passed'])return `<div class="action passed"><h4>${label}</h4><b>✓ PASSED</b></div>`;
@@ -55,6 +101,13 @@ function renderActions(){
  if(current.status==='STOCK'){
    a.push(`<div class="action final-only"><h4>Buffer Stock Exit</h4><button class="green big-action" onclick="finishFromStock()">TO FINISHING / COMPLETED</button></div>`);
    $('#actions').innerHTML=a.join('');return;
+ }
+ if(current.status==='UNDER_TESTING' && !run){
+   activeOccupancy().then(occ=>{
+     if(!occ){
+       $('#actions').innerHTML=`<div class="action primary-stage bay-required"><h4>Physical Bay Required</h4><p>This UPS cannot change stage until a compatible test bay is allocated.</p><button onclick="assignBayOnly()">ASSIGN BAY TO CONTINUE</button></div><div class="action fault-card"><h4>Fault / RTA</h4><button class="danger" onclick="markFaulty()">MARK UPS FAULTY</button></div>`;
+     }
+   });
  }
  if(run){
    a.push(heatBox(run,run==='core_heatrun'?'Core Heatrun':run.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase()),s,run));
@@ -77,14 +130,95 @@ function renderActions(){
  }
  $('#actions').innerHTML=a.join('');startTimerUi(s);
 }
-async function startLV(){if(!needEng())return;const b=await chooseCore('LV');if(!b)return;if(!current.serial_number){const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});if(r.error)return showToast(r.error.message)}const now=nowIso();let r=await sb.from('tqr_bay_occupancy').insert({bay_id:b.id,section:'LV',unit_id:current.id});if(r.error)return showToast(r.error.message);await sb.from('tqr_units').update({status:'UNDER_TESTING',current_stage:'LV TESTING IN PROGRESS',testing_started_at:now}).eq('id',current.id);await log('START','LV','IN_PROGRESS');reload()}
-async function hipot(){if(!needEng())return;const now=nowIso();await sb.from('tqr_stage_state').update({lv_passed:true,lv_passed_at:now,hipot_passed:true,hipot_passed_at:now}).eq('unit_id',current.id);await sb.from('tqr_units').update({current_stage:'HI-POT PASSED'}).eq('id',current.id);await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).eq('section','LV').is('released_at',null);await log('PASS','LV + HI-POT');reload()}
-async function startHV(){if(!needEng())return;const b=await chooseCore('HV');if(!b)return;const now=nowIso(),r=await sb.from('tqr_bay_occupancy').insert({bay_id:b.id,section:'HV',unit_id:current.id});if(r.error)return showToast(r.error.message);await sb.from('tqr_stage_state').update({hv_started:true,hv_started_at:now}).eq('unit_id',current.id);await sb.from('tqr_units').update({current_stage:'HV IN PROGRESS'}).eq('id',current.id);await log('START','HV','IN_PROGRESS');reload()}
-async function hvPass(){if(!needEng())return;const now=nowIso();await sb.from('tqr_stage_state').update({hv_passed:true,hv_passed_at:now}).eq('unit_id',current.id);await sb.from('tqr_units').update({current_stage:'HV PASSED'}).eq('id',current.id);await log('PASS','HV');reload()}
-async function heatStart(k){if(!needEng())return;const s=sstate(),already=runningHeat(s);if(already)return showToast('Timed event already running — other stages are locked');const p={};p[k+'_started']=true;p[k+'_started_at']=nowIso();let r=await sb.from('tqr_stage_state').update(p).eq('unit_id',current.id).select();if(r.error)return showToast(r.error.message);const label=k==='core_heatrun'?'CORE HEATRUN':k.replaceAll('_',' ').toUpperCase()+' HEATRUN';await sb.from('tqr_units').update({current_stage:label}).eq('id',current.id);await log('START',label,'IN_PROGRESS');reload()}
-async function startTimerUi(s){clearInterval(timerTicker);const t=await getTimers(),tick=()=>$$('.timerbox').forEach(box=>{const k=box.dataset.key,start=s[k+'_started_at'];if(!start)return;const dur=k==='core_heatrun'?(current.ups_type==='STS'?t.sts_heatrun_seconds:t.core_heatrun_seconds):t.booster_heatrun_seconds,left=Math.max(0,dur-Math.floor((Date.now()-new Date(start))/1000)),r=box.querySelector('.timer-readout'),b=box.querySelector('.timerpass');r.textContent=left?`Remaining ${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`:'Timer Complete — Check UPS';b.disabled=left>0;b.textContent=left?'Timer Running':'Check UPS & Mark Passed'});tick();timerTicker=setInterval(tick,1000)}
-async function heatPass(k){if(!needEng())return;const s=sstate(),t=await getTimers(),dur=k==='core_heatrun'?(current.ups_type==='STS'?t.sts_heatrun_seconds:t.core_heatrun_seconds):t.booster_heatrun_seconds;if(Date.now()-new Date(s[k+'_started_at'])<dur*1000)return showToast('Timer still running');const p={};p[k+'_passed']=true;p[k+'_passed_at']=nowIso();await sb.from('tqr_stage_state').update(p).eq('unit_id',current.id);const label=k==='core_heatrun'?'CORE HEATRUN PASSED':k.replaceAll('_',' ').toUpperCase()+' HEATRUN PASSED';await sb.from('tqr_units').update({current_stage:label}).eq('id',current.id);await log('PASS',label);reload()}
-async function params(){if(!needEng())return;await sb.from('tqr_stage_state').update({parameters_480v_saved:true,parameters_480v_saved_at:nowIso()}).eq('unit_id',current.id);await sb.from('tqr_units').update({current_stage:'480V / PARAMETERS SAVED'}).eq('id',current.id);await log('PASS','480V / PARAMETERS');reload()}
+async function startLV(){
+ if(!needEng())return;
+ let pick;
+ if(current.ups_type==='STS') pick=await chooseCompatible('STS_TEST');
+ else {const b=await chooseCore('LV');pick=b?{bay:b,section:'LV'}:null}
+ if(!pick)return;
+ if(!current.serial_number){const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});if(r.error)return showToast(r.error.message)}
+ const now=nowIso();
+ let r=await sb.from('tqr_bay_occupancy').insert({bay_id:pick.bay.id,section:pick.section,unit_id:current.id});
+ if(r.error)return showToast(r.error.message);
+ await sb.from('tqr_units').update({status:'UNDER_TESTING',current_stage:current.ups_type==='STS'?'STS TESTING IN PROGRESS':'LV TESTING IN PROGRESS',testing_started_at:now}).eq('id',current.id);
+ await log('START',current.ups_type==='STS'?'STS TEST':'LV','IN_PROGRESS');
+ reload();
+}
+async function hipot(){
+ if(!needEng())return;
+ const occ=await requireBay(current.ups_type==='STS'?'STS_TEST':'LV');if(!occ)return;
+ const now=nowIso();
+ await sb.from('tqr_stage_state').update({lv_passed:true,lv_passed_at:now,hipot_passed:true,hipot_passed_at:now}).eq('unit_id',current.id);
+ await sb.from('tqr_units').update({current_stage:current.ups_type==='STS'?'STS TEST PASSED':'HI-POT PASSED'}).eq('id',current.id);
+ if(current.ups_type!=='STS') await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).eq('section','LV').is('released_at',null);
+ await log('PASS',current.ups_type==='STS'?'STS TEST':'LV + HI-POT');
+ reload();
+}
+async function startHV(){
+ if(!needEng())return;
+ if(current.ups_type==='STS')return showToast('TST/STS cannot use Core Test Bay. Use STS Test Bay / STS Heatrun Bay only.');
+ const b=await chooseCore('HV');if(!b)return;const now=nowIso();
+ const r=await sb.from('tqr_bay_occupancy').insert({bay_id:b.id,section:'HV',unit_id:current.id});if(r.error)return showToast(r.error.message);
+ await sb.from('tqr_stage_state').update({hv_started:true,hv_started_at:now}).eq('unit_id',current.id);
+ await sb.from('tqr_units').update({current_stage:'HV IN PROGRESS'}).eq('id',current.id);
+ await log('START','HV','IN_PROGRESS');reload();
+}
+async function hvPass(){
+ if(!needEng())return;
+ if(current.ups_type==='STS')return showToast('HV is not applicable to TST/STS.');
+ const occ=await requireBay('HV');if(!occ)return;
+ const now=nowIso();
+ await sb.from('tqr_stage_state').update({hv_passed:true,hv_passed_at:now}).eq('unit_id',current.id);
+ await sb.from('tqr_units').update({current_stage:'HV PASSED'}).eq('id',current.id);
+ await log('PASS','HV');reload();
+}
+async function heatStart(k){
+ if(!needEng())return;
+ const st=sstate(),already=runningHeat(st);if(already)return showToast('Timed event already running — other stages are locked');
+ if(current.ups_type==='STS'){
+   if(k!=='core_heatrun')return showToast('Boosters are not applicable to TST/STS');
+   const occ=await activeOccupancy();
+   if(!occ || occ.section!=='STS_HEATRUN')return showToast('Move TST/STS to STS Heatrun Bay before starting Heatrun');
+ }else{
+   const occ=await requireBay('HV');if(!occ)return;
+ }
+ const p={};p[k+'_started']=true;p[k+'_started_at']=nowIso();
+ let r=await sb.from('tqr_stage_state').update(p).eq('unit_id',current.id).select();if(r.error)return showToast(r.error.message);
+ const label=k==='core_heatrun'?(current.ups_type==='STS'?'STS HEATRUN':'CORE HEATRUN'):k.replaceAll('_',' ').toUpperCase()+' HEATRUN';
+ await sb.from('tqr_units').update({current_stage:label}).eq('id',current.id);
+ await log('START',label,'IN_PROGRESS');reload();
+}
+async function startTimerUi(st){
+ clearInterval(timerTicker);
+ const t=await getTimers();
+ const tick=()=>$$('.timerbox').forEach(box=>{
+   const k=box.dataset.key,start=st[k+'_started_at'];if(!start)return;
+   const dur=k==='core_heatrun'?(current.ups_type==='STS'?t.sts_heatrun_seconds:t.core_heatrun_seconds):t.booster_heatrun_seconds;
+   const left=Math.max(0,dur-Math.floor((Date.now()-new Date(start))/1000));
+   const r=box.querySelector('.timer-readout'),b=box.querySelector('.timerpass');
+   if(r)r.textContent=left?`Remaining ${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`:'Timer Complete — Check UPS';
+   if(b){b.disabled=left>0;b.textContent=left?'Timer Running':'Check UPS & Mark Passed'}
+ });
+ tick();timerTicker=setInterval(tick,1000);
+}
+async function heatPass(k){
+ if(!needEng())return;
+ const occ=await requireBay(current.ups_type==='STS'?'STS_HEATRUN':'HV');if(!occ)return;
+ const st=sstate(),t=await getTimers(),dur=k==='core_heatrun'?(current.ups_type==='STS'?t.sts_heatrun_seconds:t.core_heatrun_seconds):t.booster_heatrun_seconds;
+ if(Date.now()-new Date(st[k+'_started_at'])<dur*1000)return showToast('Timer still running');
+ const p={};p[k+'_passed']=true;p[k+'_passed_at']=nowIso();
+ await sb.from('tqr_stage_state').update(p).eq('unit_id',current.id);
+ const label=k==='core_heatrun'?(current.ups_type==='STS'?'STS HEATRUN PASSED':'CORE HEATRUN PASSED'):k.replaceAll('_',' ').toUpperCase()+' HEATRUN PASSED';
+ await sb.from('tqr_units').update({current_stage:label}).eq('id',current.id);
+ await log('PASS',label);reload();
+}
+async function params(){
+ if(!needEng())return;
+ const occ=await requireBay(current.ups_type==='STS'?'STS_HEATRUN':'HV');if(!occ)return;
+ await sb.from('tqr_stage_state').update({parameters_480v_saved:true,parameters_480v_saved_at:nowIso()}).eq('unit_id',current.id);
+ await sb.from('tqr_units').update({current_stage:'480V / PARAMETERS SAVED'}).eq('id',current.id);
+ await log('PASS','480V / PARAMETERS');reload();
+}
 async function exitUnit(status){if(!needEng())return;const now=nowIso();await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);const p=status==='COMPLETED'?{status,current_stage:'TO FINISHING / COMPLETED',completed_at:now}:{status,current_stage:'BUFFER STOCK',stock_at:now};await sb.from('tqr_units').update(p).eq('id',current.id);await log('EXIT',status==='COMPLETED'?'TO FINISHING':'BUFFER STOCK');reload()}
 async function finishFromStock(){if(!needEng())return;const now=nowIso();await sb.from('tqr_units').update({status:'COMPLETED',current_stage:'TO FINISHING / COMPLETED',completed_at:now}).eq('id',current.id);await log('EXIT','TO FINISHING FROM BUFFER STOCK');showToast('Moved to Finishing');reload()}
 async function markFaulty(){
@@ -128,7 +262,7 @@ async function markFaulty(){
 async function moveToParking(){if(!needEng())return;const now=nowIso();await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);const r=await sb.from('tqr_units').update({parked:true,parked_at:now,parked_from_stage:current.current_stage}).eq('id',current.id);if(r.error)return showToast(r.error.message);await log('MOVE','PARKING AREA','PASS');showToast('UPS moved to Parking Area');reload()}
 async function resumeFromParking(){showToast('Resume from Parking Area and select an empty compatible bay first')}
 
-Object.assign(window,{receive,startLV,hipot,startHV,hvPass,heatStart,heatPass,params,exitUnit,finishFromStock,markFaulty,moveToParking,resumeFromParking});
+Object.assign(window,{receive,startLV,hipot,startHV,hvPass,heatStart,heatPass,params,exitUnit,finishFromStock,markFaulty,moveToParking,resumeFromParking,assignBayOnly});
 $('#loadQr').onclick=openQR;$('#openLive').onclick=()=>{const q=$('#liveUps').value;if(!q)return;$('#qr').value=q;openQR()};$('#qr').onkeydown=e=>{if(e.key==='Enter')openQR()};
 (async()=>{await loadDropdown();const q=new URLSearchParams(location.search).get('qr');if(q){$('#qr').value=q;openQR()}})().catch(e=>showToast(e.message));
 

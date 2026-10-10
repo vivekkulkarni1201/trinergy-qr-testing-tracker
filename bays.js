@@ -20,7 +20,7 @@ async function render(){
   $$('[data-qr]').forEach(x=>x.onclick=()=>directScan(x.dataset.qr));
   await ticks();
 }
-async function ticks(){for(const el of $$('[data-t]')){const u=data.u.find(x=>x.id===el.dataset.t);el.textContent=await timerText(u)}}
+async function ticks(){for(const el of $$('[data-t]')){const u=data.u.find(x=>x.id===el.dataset.t);if(el)el.textContent=await timerText(u)}}
 render().catch(e=>showToast(e.message)); setInterval(()=>data&&ticks(),1000);
 
 realtimeWatch('bays',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],()=>render());

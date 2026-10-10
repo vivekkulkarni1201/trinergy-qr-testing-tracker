@@ -94,3 +94,7 @@ function faultSerialClass(u){return u?.faulted?' faulted-serial':''}
 function runningTimedEvent(u){const s=stateOf(u)||{};return ['core_heatrun','booster_1','booster_2','booster_3'].find(k=>s[k+'_started']&&!s[k+'_passed'])||null}
 function timedEventLabel(k){return k==='core_heatrun'?'Core Heatrun':k?k.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase()):''}
 function startPolling(name,callback,ms=2500){if(window['_poll_'+name])clearInterval(window['_poll_'+name]);window['_poll_'+name]=setInterval(()=>{if(document.visibilityState==='visible')callback()},ms)}
+
+function savePageCache(key,value){try{localStorage.setItem('tqr_cache_'+key,JSON.stringify({ts:Date.now(),value}))}catch{}}
+function loadPageCache(key,maxAge=3600000){try{const x=JSON.parse(localStorage.getItem('tqr_cache_'+key)||'null');return x&&Date.now()-x.ts<maxAge?x.value:null}catch{return null}}
+function debounceAsync(fn,wait=250){let t=null;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait)}}

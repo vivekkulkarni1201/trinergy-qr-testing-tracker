@@ -1,6 +1,6 @@
 mountTopbar('faulty');let units=[],coreData=null;
 function stageOptions(u){const a=[['LV','LV / Hi-Pot'],['HV','HV Testing'],['CORE_HEATRUN','Core Heatrun']];if(u.ups_type!=='STS'){a.push(['BOOSTER_1','Booster 1'],['BOOSTER_2','Booster 2']);if(u.ups_type==='3X')a.push(['BOOSTER_3','Booster 3'])}a.push(['PARAMETERS_480V','480V / Parameters']);return a}
-function secFor(u,st){if(u.ups_type==='STS')return st==='CORE_HEATRUN'?'STS_HEATRUN':'STS_TEST';return st==='LV'?'LV':'HV'}
+function secFor(u,st){if(u.ups_type==='STS')return ['CORE_HEATRUN','PARAMETERS_480V'].includes(st)?'STS_HEATRUN':'STS_TEST';return st==='LV'?'LV':'HV'}
 function fillBay(id){const u=units.find(x=>x.id===id),st=$('#rs_'+id).value,sec=secFor(u,st),free=coreData.b.filter(b=>b.active!==false&&((sec==='LV'||sec==='HV')?b.bay_kind==='CORE':sec==='STS_TEST'?b.bay_kind==='STS_TEST':b.bay_kind==='STS_HEATRUN')&&!coreData.o.some(o=>o.bay_id===b.id&&o.section===sec));$('#rb_'+id).innerHTML='<option value="">Select empty compatible bay...</option>'+free.map(b=>`<option value="${b.id}|${sec}">${esc(b.bay_name)} · ${sec}</option>`).join('')}
 async function boot(){
  const prevStage={},prevBay={};$$('[id^="rs_"]').forEach(x=>prevStage[x.id]=x.value);$$('[id^="rb_"]').forEach(x=>prevBay[x.id]=x.value);

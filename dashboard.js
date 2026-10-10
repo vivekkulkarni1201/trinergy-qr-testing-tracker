@@ -85,20 +85,36 @@ async function refreshTimers(){
 
 function calendarWeeks(month){const [y,m]=month.split('-').map(Number),last=new Date(y,m,0).getDate(),w=[];let d=1;while(d<=last){if(new Date(y,m-1,d).getDay()===0){d++;continue}const dow=new Date(y,m-1,d).getDay(),end=Math.min(d+(6-dow),last);w.push({start:d,end});d=end+1;if(d<=last&&new Date(y,m-1,d).getDay()===0)d++}return w}
 async function renderWeekly(){
- const month=ym(),weeks=calendarWeeks(month),[y,m]=month.split('-').map(Number),today=new Date(),isCur=today.getFullYear()===y&&today.getMonth()+1===m;if($('#weeklyMonthLabel')) $('#weeklyMonthLabel').textContent=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
- const wr=await sb.from('tqr_weekly_targets').select('*').eq('month_start',month+'-01'),wm=Object.fromEntries((wr.data||[]).map(x=>[`${x.week_no}_${x.ups_type}`,Number(x.target)||0])),wdm=Array.from({length:new Date(y,m,0).getDate()},(_,i)=>i+1).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
- if($('#weeklyGraph')) $('#weeklyGraph').innerHTML=weeks.map((w,i)=>{const cur=isCur&&today.getDate()>=w.start&&today.getDate()<=w.end,wd=Array.from({length:w.end-w.start+1},(_,k)=>w.start+k).filter(d=>new Date(y,m-1,d).getDay()!==0).length,groups=['3X','2X','STS'].map(t=>{const monthly=counts(data,t,month),target=wm[`${i+1}_${t}`]??Math.round(monthly.target*wd/Math.max(1,wdm)),actual=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===month&&Number(u.completed_at.slice(8,10))>=w.start&&Number(u.completed_at.slice(8,10))<=w.end).length,max=Math.max(target,actual,1),tp=Math.max(4,Math.round(target/max*100)),ap=Math.max(actual?4:0,Math.round(actual/max*100));return `<div class="weekly-type"><b>${t}</b><div class="mini-bars"><i class="target" style="--h:${tp}%"><span>${target}</span></i><i class="actual" style="--h:${ap}%"><span>${actual}</span></i></div><small>T / C</small></div>`}).join('');return `<div class="calendar-week ${cur?'current-week':''}"><div class="calendar-week-head"><b>Week ${i+1}</b><span>${w.start}–${w.end}</span></div><div class="weekly-types">${groups}</div></div>`}).join('');
+ const month=ym(),weeks=calendarWeeks(month),[y,m]=month.split('-').map(Number),today=new Date(),isCur=today.getFullYear()===y&&today.getMonth()+1===m;
+ if($('#weeklyMonthLabel'))$('#weeklyMonthLabel').textContent=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+ const wr=await sb.from('tqr_weekly_targets').select('*').eq('month_start',month+'-01');
+ const wm=Object.fromEntries((wr.data||[]).map(x=>[`${x.week_no}_${x.ups_type}`,Number(x.target)||0]));
+ const workdaysMonth=Array.from({length:new Date(y,m,0).getDate()},(_,i)=>i+1).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
+ if(!$('#weeklyGraph'))return;
+ $('#weeklyGraph').innerHTML=weeks.map((w,i)=>{
+   const cur=isCur&&today.getDate()>=w.start&&today.getDate()<=w.end;
+   const wd=Array.from({length:w.end-w.start+1},(_,k)=>w.start+k).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
+   const types=['3X','2X','STS'].map(t=>{
+     const monthly=counts(data,t,month),target=wm[`${i+1}_${t}`]??Math.round(monthly.target*wd/Math.max(1,workdaysMonth));
+     const actual=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===month&&Number(u.completed_at.slice(8,10))>=w.start&&Number(u.completed_at.slice(8,10))<=w.end).length;
+     const max=Math.max(target,actual,1),tp=Math.round(target/max*100),ap=Math.round(actual/max*100);
+     return `<div class="week-type-row"><b>${t}</b><div class="week-bars"><div><span>T ${target}</span><i class="target" style="width:${tp}%"></i></div><div><span>C ${actual}</span><i class="actual" style="width:${ap}%"></i></div></div></div>`;
+   }).join('');
+   return `<div class="calendar-week ${cur?'current-week':''}"><div class="calendar-week-head"><b>W${i+1}</b><span>${w.start}–${w.end}</span></div>${types}</div>`;
+ }).join('');
 }
 async function boot(){
+  const cached=loadPageCache('dashboard',1800000);
+  if(cached){try{data=cached;renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()}catch{}}
   const qr=new URLSearchParams(location.search).get('qr');
   if(qr){ location.replace(`scan.html?qr=${encodeURIComponent(qr)}`); return; }
-  data=await loadCore();const ar=await sb.from('tqr_ui_assets').select('*');if(!ar.error)(ar.data||[]).forEach(x=>{if(x.asset_key.startsWith('kpi_'))kpiAssets[x.asset_key.slice(4)]=x.public_url});renderKpis(); renderPerformance(); renderToday(); await renderBays(); await renderWeekly();
+  data=await loadCore();savePageCache('dashboard',data);const ar=await sb.from('tqr_ui_assets').select('*');if(!ar.error)(ar.data||[]).forEach(x=>{if(x.asset_key.startsWith('kpi_'))kpiAssets[x.asset_key.slice(4)]=x.public_url});renderKpis(); renderPerformance(); renderToday(); await renderBays(); await renderWeekly();
   setInterval(refreshTimers,1000);
 }
 $('#prevMonth').onclick=()=>shiftMonth(-1); $('#nextMonth').onclick=()=>shiftMonth(1);
 boot().catch(e=>showToast(e.message));
 
-realtimeWatch('dashboard',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history','tqr_monthly_targets'],async()=>{data=await loadCore();renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()});
+realtimeWatch('dashboard',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history','tqr_monthly_targets'],async()=>{data=await loadCore();savePageCache('dashboard',data);renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()});
 
 let _dashSig='';
 startPolling('dashboard',async()=>{try{

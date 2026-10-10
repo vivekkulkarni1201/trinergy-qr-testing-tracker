@@ -168,14 +168,7 @@ async function renderWeekly(){
    </article>`;
  }).join('');
 
- const weekTiles=weeks.map((wk,i)=>`<button class="week-neon-tile ${i===selectedWeek?'selected':''} ${same&&i===currentIndex?'current':''}" data-week="${i}">
-   <span class="week-cal-icon">▣</span>
-   <span class="week-txt"><b>W${i+1}</b><small>${dateLabel(wk)}</small></span>
-   <span class="week-arrow">›</span>
- </button>`).join('');
-
- $('#weeklyGraph').innerHTML=`<div class="weekly-neon-grid">${cards}</div><div class="week-neon-strip">${weekTiles}</div>`;
- $$('.week-neon-tile').forEach(b=>b.onclick=()=>{selectedWeek=Number(b.dataset.week);renderWeekly()});
+ $('#weeklyGraph').innerHTML=`<div class="weekly-neon-grid tanks-only">${cards}</div>`;
 }
 async function boot(){
   const cached=loadPageCache('dashboard',1800000);

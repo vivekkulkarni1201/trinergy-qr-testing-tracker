@@ -61,17 +61,24 @@ async function timerText(u){
   return `${left? '⏱ '+String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0') : 'Timer Complete'}`;
 }
 async function renderBays(){
- const bays=data.b.filter(b=>b.active!==false);
- $('#bayGrid').innerHTML=bays.map(b=>{
-   const secs=b.bay_kind==='CORE'?['SLOT1','SLOT2']:[b.bay_kind==='STS_TEST'?'STS_TEST':'STS_HEATRUN'];
-   const cap=b.bay_kind==='CORE'?`${bayActiveOccupancy(data,b.id).length}/2`:(bayActiveOccupancy(data,b.id).length?'1/1':'0/1');
-   return `<div class="bay-card" onclick="location.href='bays.html?bay=${b.id}'"><div class="bay-title"><h3>${esc(b.bay_name)}</h3><span class="capacity-chip">${cap}</span></div><div class="bay-sections">${secs.map(sec=>{
-     const u=unitForOcc(data,activeOcc(data,b.id,sec)),timed=u?runningTimedEvent(u):null;
-     return `<div class="bay-slot ${u?'occupied':'empty'} ${timed?'timed':''}" ${u?`data-qr="${esc(u.qr_code)}"`:''}><div class="slot-head"><span class="slot-tag">${b.bay_kind==='CORE'?coreBayLabel(sec):sec.replace('_',' ')}</span><i class="slot-dot"></i></div>${u?`<div class="slot-serial${faultSerialClass(u)}">${esc((u.serial_number||'----').slice(-4))}<small>${u.ups_type}</small></div><div class="slot-stage">${esc(u.current_stage||'')}</div><div class="slot-timer" data-timer="${u.id}"></div>`:`<div class="available">Available</div>`}</div>`;
-   }).join('')}</div></div>`;
- }).join('');
+ const bays=data.b.filter(b=>b.active!==false),core=bays.filter(b=>b.bay_kind==='CORE');
+ const stsTest=bays.filter(b=>b.bay_kind==='STS_TEST'),stsHeat=bays.filter(b=>b.bay_kind==='STS_HEATRUN');
+ const coreCard=b=>{
+   const secs=['SLOT1','SLOT2'],cap=`${bayActiveOccupancy(data,b.id).length}/2`;
+   return `<div class="bay-card" onclick="location.href='bays.html?bay=${b.id}'"><div class="bay-title"><h3>${esc(b.bay_name)}</h3><span class="capacity-chip">${cap}</span></div><div class="bay-sections">${secs.map(sec=>baySlotHtml(b,sec,true)).join('')}</div></div>`;
+ };
+ const stsGroup=(kind,title,list)=>{
+   if(!list.length)return '';
+   const section=kind==='STS_TEST'?'STS_TEST':'STS_HEATRUN',used=list.reduce((n,b)=>n+bayActiveOccupancy(data,b.id).length,0);
+   return `<div class="bay-card sts-group-card"><div class="bay-title"><h3>${title}</h3><span class="capacity-chip">${used}/${list.length}</span></div><div class="sts-bay-grid">${list.map(b=>`<div class="sts-bay-mini" onclick="location.href='bays.html?bay=${b.id}'"><div class="sts-mini-head"><b>${esc(b.bay_name)}</b><span>${bayActiveOccupancy(data,b.id).length?'1/1':'0/1'}</span></div>${baySlotHtml(b,section,false)}</div>`).join('')}</div></div>`;
+ };
+ $('#bayGrid').innerHTML=core.map(coreCard).join('')+stsGroup('STS_TEST','STS Test Bays',stsTest)+stsGroup('STS_HEATRUN','STS Heatrun Bays',stsHeat);
  $$('[data-qr]').forEach(x=>x.onclick=e=>{e.stopPropagation();directScan(x.dataset.qr)});
  await refreshTimers();
+}
+function baySlotHtml(b,sec,isCore){
+ const u=unitForOcc(data,activeOcc(data,b.id,sec)),timed=u?runningTimedEvent(u):null;
+ return `<div class="bay-slot ${u?'occupied':'empty'} ${timed?'timed':''}" ${u?`data-qr="${esc(u.qr_code)}"`:''}><div class="slot-head"><span class="slot-tag">${isCore?coreBayLabel(sec):(sec==='STS_TEST'?'STS TEST':'STS HEATRUN')}</span><i class="slot-dot"></i></div>${u?`<div class="slot-serial${faultSerialClass(u)}">${esc((u.serial_number||'----').slice(-4))}<small>${u.ups_type}</small></div><div class="slot-stage">${esc(u.current_stage||'')}</div><div class="slot-timer" data-timer="${u.id}"></div>`:`<div class="available">Available</div>`}</div>`;
 }
 async function refreshTimers(){
   for(const el of $$('[data-timer]')){
@@ -81,23 +88,28 @@ async function refreshTimers(){
 
 function calendarWeeks(month){const [y,m]=month.split('-').map(Number),last=new Date(y,m,0).getDate(),w=[];let d=1;while(d<=last){if(new Date(y,m-1,d).getDay()===0){d++;continue}const dow=new Date(y,m-1,d).getDay(),end=Math.min(d+(6-dow),last);w.push({start:d,end});d=end+1;if(d<=last&&new Date(y,m-1,d).getDay()===0)d++}return w}
 let selectedWeek=null;
-function monthWeeks(month){
- const [y,m]=month.split('-').map(Number),last=new Date(y,m,0).getDate(),weeks=[];let start=1;
- while(start<=last){const end=Math.min(last,start+6);weeks.push({start,end});start=end+1}
- return weeks;
-}
 async function renderWeekly(){
- const month=selectedMonth,weeks=monthWeeks(month),[y,m]=month.split('-').map(Number),today=new Date(),same=today.getFullYear()===y&&today.getMonth()+1===m;
- const currentIndex=same?Math.min(weeks.length-1,Math.floor((today.getDate()-1)/7)):0;
+ const month=selectedMonth,weeks=calendarWeeks(month),[y,m]=month.split('-').map(Number),today=new Date(),same=today.getFullYear()===y&&today.getMonth()+1===m;
+ let currentIndex=0;
+ if(same){
+   const day=today.getDate(),found=weeks.findIndex(w=>day>=w.start&&day<=w.end);
+   currentIndex=found>=0?found:Math.max(0,weeks.findLastIndex?weeks.findLastIndex(w=>w.end<day):weeks.map(w=>w.end<day).lastIndexOf(true));
+ }
  if(selectedWeek===null||selectedWeek>=weeks.length)selectedWeek=currentIndex;
  if($('#weeklyMonthLabel'))$('#weeklyMonthLabel').textContent=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
  const wr=await sb.from('tqr_weekly_targets').select('*').eq('month_start',month+'-01');
  const wm=Object.fromEntries((wr.data||[]).map(x=>[`${x.week_no}_${x.ups_type}`,Number(x.target)||0]));
  const workdaysMonth=Array.from({length:new Date(y,m,0).getDate()},(_,i)=>i+1).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
- const tabs=weeks.map((w,i)=>`<button class="week-tab ${i===selectedWeek?'selected':''} ${i===currentIndex&&same?'current':''}" data-week="${i}">W${i+1}<small>${w.start}–${w.end}</small></button>`).join('');
+ const dateLabel=w=>{const mon=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'short'});return `${w.start}–${w.end} ${mon}`};
+ const tabs=weeks.map((w,i)=>`<button class="week-tab ${i===selectedWeek?'selected':''} ${same&&i===currentIndex?'current':''}" data-week="${i}"><b>W${i+1}</b><small>${dateLabel(w)}</small></button>`).join('');
  const w=weeks[selectedWeek],wd=Array.from({length:w.end-w.start+1},(_,k)=>w.start+k).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
- const rows=['3X','2X','STS'].map(t=>{const c=counts(data,t,month),target=wm[`${selectedWeek+1}_${t}`]??Math.round(c.target*wd/Math.max(1,workdaysMonth)),actual=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===month&&Number(u.completed_at.slice(8,10))>=w.start&&Number(u.completed_at.slice(8,10))<=w.end).length,pending=Math.max(0,target-actual),max=Math.max(target,actual,1);return `<div class="weekly-clean-row"><b>${t}</b><div class="weekly-clean-bars"><div><span>Target ${target}</span><i class="target" style="width:${Math.round(target/max*100)}%"></i></div><div><span>Completed ${actual}</span><i class="actual" style="width:${Math.round(actual/max*100)}%"></i></div></div><div class="weekly-pending">Pending <b>${pending}</b></div></div>`}).join('');
- $('#weeklyGraph').innerHTML=`<div class="week-tabs">${tabs}</div><div class="weekly-selected">${rows}</div>`;
+ const cards=['3X','2X','STS'].map(t=>{
+   const c=counts(data,t,month),target=wm[`${selectedWeek+1}_${t}`]??Math.round(c.target*wd/Math.max(1,workdaysMonth));
+   const actual=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===month&&Number(u.completed_at.slice(8,10))>=w.start&&Number(u.completed_at.slice(8,10))<=w.end).length;
+   const pending=Math.max(0,target-actual),pct=target?Math.round(actual/target*100):(actual?100:0),fill=Math.min(100,pct),cls=t==='3X'?'blue':t==='2X'?'green':'purple';
+   return `<div class="weekly-energy-card ${cls}"><div class="weekly-energy-title"><div><span>TRINERGY</span><b>${t}</b></div><strong>${pct}%</strong></div><div class="weekly-energy-main"><div class="weekly-vessel"><div class="vessel-fill" style="height:${fill}%"></div><div class="vessel-glow"></div><span>${actual}/${target}</span></div><div class="weekly-metrics"><div><span>Weekly Target</span><b>${target}</b></div><div><span>Completed</span><b>${actual}</b></div><div><span>Pending</span><b>${pending}</b></div></div></div><div class="weekly-progress-track"><i style="width:${fill}%"></i></div></div>`;
+ }).join('');
+ $('#weeklyGraph').innerHTML=`<div class="weekly-selector-head"><div><b>Selected Week: W${selectedWeek+1}</b><span>${dateLabel(w)} · Monday–Saturday calendar planning; Sunday excluded</span></div></div><div class="week-tabs">${tabs}</div><div class="weekly-energy-grid">${cards}</div>`;
  $$('.week-tab').forEach(b=>b.onclick=()=>{selectedWeek=Number(b.dataset.week);renderWeekly()});
 }
 async function boot(){

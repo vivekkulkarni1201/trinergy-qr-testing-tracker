@@ -9,11 +9,11 @@ async function timerText(u){
 }
 async function render(){
  data=await loadCore();
- $('#bayGrid').innerHTML=data.b.filter(b=>b.active!==false).map(b=>{
-   const secs=b.bay_kind==='CORE'?['SLOT1','SLOT2']:[b.bay_kind==='STS_TEST'?'STS_TEST':'STS_HEATRUN'];
-   const cap=b.bay_kind==='CORE'?`${bayActiveOccupancy(data,b.id).length}/2`:(bayActiveOccupancy(data,b.id).length?'1/1':'0/1');
-   return `<div class="bay-card"><div class="bay-title"><h3>${esc(b.bay_name)}</h3><span class="capacity-chip">${cap}</span></div><div class="bay-sections">${secs.map(sec=>{const u=unitForOcc(data,activeOcc(data,b.id,sec)),timed=u?runningTimedEvent(u):null;return `<div class="bay-slot ${u?'occupied':'empty'} ${timed?'timed':''}" ${u?`data-qr="${esc(u.qr_code)}"`:''}><div class="slot-head"><span class="slot-tag">${b.bay_kind==='CORE'?coreBayLabel(sec):sec.replace('_',' ')}</span><i class="slot-dot"></i></div>${u?`<div class="slot-serial${faultSerialClass(u)}">${esc((u.serial_number||'----').slice(-4))}<small>${u.ups_type}</small></div><div class="slot-stage">${esc(u.current_stage||'')}</div><div class="slot-timer" data-t="${u.id}"></div>`:`<div class="available">Available</div>`}</div>`}).join('')}</div></div>`;
- }).join('');
+ const bays=data.b.filter(b=>b.active!==false),core=bays.filter(b=>b.bay_kind==='CORE'),stsTest=bays.filter(b=>b.bay_kind==='STS_TEST'),stsHeat=bays.filter(b=>b.bay_kind==='STS_HEATRUN');
+ const slot=(b,sec,isCore)=>{const u=unitForOcc(data,activeOcc(data,b.id,sec)),timed=u?runningTimedEvent(u):null;return `<div class="bay-slot ${u?'occupied':'empty'} ${timed?'timed':''}" ${u?`data-qr="${esc(u.qr_code)}"`:''}><div class="slot-head"><span class="slot-tag">${isCore?coreBayLabel(sec):(sec==='STS_TEST'?'STS TEST':'STS HEATRUN')}</span><i class="slot-dot"></i></div>${u?`<div class="slot-serial${faultSerialClass(u)}">${esc((u.serial_number||'----').slice(-4))}<small>${u.ups_type}</small></div><div class="slot-stage">${esc(u.current_stage||'')}</div><div class="slot-timer" data-t="${u.id}"></div>`:`<div class="available">Available</div>`}</div>`};
+ const coreCard=b=>`<div class="bay-card"><div class="bay-title"><h3>${esc(b.bay_name)}</h3><span class="capacity-chip">${bayActiveOccupancy(data,b.id).length}/2</span></div><div class="bay-sections">${['SLOT1','SLOT2'].map(sec=>slot(b,sec,true)).join('')}</div></div>`;
+ const group=(kind,title,list)=>{if(!list.length)return'';const sec=kind==='STS_TEST'?'STS_TEST':'STS_HEATRUN',used=list.reduce((n,b)=>n+bayActiveOccupancy(data,b.id).length,0);return `<div class="bay-card sts-group-card"><div class="bay-title"><h3>${title}</h3><span class="capacity-chip">${used}/${list.length}</span></div><div class="sts-bay-grid">${list.map(b=>`<div class="sts-bay-mini"><div class="sts-mini-head"><b>${esc(b.bay_name)}</b><span>${bayActiveOccupancy(data,b.id).length?'1/1':'0/1'}</span></div>${slot(b,sec,false)}</div>`).join('')}</div></div>`};
+ $('#bayGrid').innerHTML=core.map(coreCard).join('')+group('STS_TEST','STS Test Bays',stsTest)+group('STS_HEATRUN','STS Heatrun Bays',stsHeat);
  $$('[data-qr]').forEach(x=>x.onclick=()=>directScan(x.dataset.qr));await ticks();
 }
 async function ticks(){for(const el of $$('[data-t]')){const u=data.u.find(x=>x.id===el.dataset.t);if(el)el.textContent=await timerText(u)}}

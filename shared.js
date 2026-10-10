@@ -98,3 +98,13 @@ function startPolling(name,callback,ms=2500){if(window['_poll_'+name])clearInter
 function savePageCache(key,value){try{localStorage.setItem('tqr_cache_'+key,JSON.stringify({ts:Date.now(),value}))}catch{}}
 function loadPageCache(key,maxAge=3600000){try{const x=JSON.parse(localStorage.getItem('tqr_cache_'+key)||'null');return x&&Date.now()-x.ts<maxAge?x.value:null}catch{return null}}
 function debounceAsync(fn,wait=250){let t=null;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait)}}
+
+function bayActiveOccupancy(data,bayId){return data.o.filter(o=>o.bay_id===bayId)}
+function coreBayFreeSlot(data,bayId){
+  const used=new Set(bayActiveOccupancy(data,bayId).map(o=>o.section));
+  if(!used.has('SLOT1'))return 'SLOT1';
+  if(!used.has('SLOT2'))return 'SLOT2';
+  return null;
+}
+function coreBayHasCapacity(data,bayId){return !!coreBayFreeSlot(data,bayId)}
+function coreBayLabel(section){return section==='SLOT1'?'Slot 1':section==='SLOT2'?'Slot 2':section}

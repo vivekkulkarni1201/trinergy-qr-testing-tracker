@@ -37,7 +37,7 @@ async function addEngineer(){
 }
 async function toggleEngineer(id,active){const r=await sb.from('tqr_engineers').update({active}).eq('id',id);if(r.error)showToast(r.error.message)}
 
-async function loadBays(){const d=await table('tqr_bays');$('#bayMasterBody').innerHTML=d.sort((a,b)=>a.bay_name.localeCompare(b.bay_name)).map(b=>`<tr><td><input id="bn_${b.id}" value="${esc(b.bay_name)}"></td><td>${b.bay_kind}</td><td>${b.bay_kind==='CORE'?'LV + HV':'Single'}</td><td>${toggleHtml(b.id,b.active!==false,'toggleBay')}</td><td><button onclick="saveBayName('${b.id}')">Save Name</button></td></tr>`).join('')}
+async function loadBays(){const d=await table('tqr_bays');$('#bayMasterBody').innerHTML=d.sort((a,b)=>a.bay_name.localeCompare(b.bay_name)).map(b=>`<tr><td><input id="bn_${b.id}" value="${esc(b.bay_name)}"></td><td>${b.bay_kind}</td><td>${b.bay_kind==='CORE'?'2 UPS Capacity':'Dedicated'}</td><td>${toggleHtml(b.id,b.active!==false,'toggleBay')}</td><td><button onclick="saveBayName('${b.id}')">Save Name</button></td></tr>`).join('')}
 async function addBay(){const bay_name=$('#newBayName').value.trim(),bay_kind=$('#newBayKind').value;if(!bay_name)return showToast('Enter bay name');const r=await sb.from('tqr_bays').insert({bay_name,bay_kind,active:true});showToast(r.error?r.error.message:'Bay added');if(!r.error){$('#newBayName').value='';loadBays()}}
 async function toggleBay(id,active){const r=await sb.from('tqr_bays').update({active}).eq('id',id);if(r.error)showToast(r.error.message)}
 async function saveBayName(id){const bay_name=$('#bn_'+id).value.trim();if(!bay_name)return showToast('Bay name required');const r=await sb.from('tqr_bays').update({bay_name}).eq('id',id);showToast(r.error?r.error.message:'Bay name updated');if(!r.error)loadBays()}

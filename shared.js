@@ -108,3 +108,42 @@ function coreBayFreeSlot(data,bayId){
 }
 function coreBayHasCapacity(data,bayId){return !!coreBayFreeSlot(data,bayId)}
 function coreBayLabel(section){return section==='SLOT1'?'Slot 1':section==='SLOT2'?'Slot 2':section}
+
+// PWA registration / install support
+let deferredPwaInstallPrompt=null;
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  });
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredPwaInstallPrompt=e;
+  document.documentElement.classList.add('pwa-install-available');
+});
+window.addEventListener('appinstalled',()=>{
+  deferredPwaInstallPrompt=null;
+  document.documentElement.classList.remove('pwa-install-available');
+});
+async function installTrinergyPwa(){
+  if(deferredPwaInstallPrompt){
+    deferredPwaInstallPrompt.prompt();
+    await deferredPwaInstallPrompt.userChoice;
+    deferredPwaInstallPrompt=null;
+    document.documentElement.classList.remove('pwa-install-available');
+    return;
+  }
+  showToast('Use browser menu → Add to Home screen / Install app');
+}
+window.installTrinergyPwa=installTrinergyPwa;
+
+function addPwaInstallButton(){
+ const bar=document.querySelector('#topbar');
+ if(!bar||bar.querySelector('.pwa-install-btn'))return;
+ const btn=document.createElement('button');
+ btn.className='pwa-install-btn';
+ btn.textContent='Install App';
+ btn.onclick=installTrinergyPwa;
+ bar.appendChild(btn);
+}
+window.addEventListener('load',()=>setTimeout(addPwaInstallButton,250));

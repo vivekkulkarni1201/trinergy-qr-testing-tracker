@@ -96,21 +96,86 @@ async function renderWeekly(){
    currentIndex=found>=0?found:Math.max(0,weeks.findLastIndex?weeks.findLastIndex(w=>w.end<day):weeks.map(w=>w.end<day).lastIndexOf(true));
  }
  if(selectedWeek===null||selectedWeek>=weeks.length)selectedWeek=currentIndex;
- if($('#weeklyMonthLabel'))$('#weeklyMonthLabel').textContent=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
  const wr=await sb.from('tqr_weekly_targets').select('*').eq('month_start',month+'-01');
  const wm=Object.fromEntries((wr.data||[]).map(x=>[`${x.week_no}_${x.ups_type}`,Number(x.target)||0]));
  const workdaysMonth=Array.from({length:new Date(y,m,0).getDate()},(_,i)=>i+1).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
- const dateLabel=w=>{const mon=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'short'});return `${w.start}–${w.end} ${mon}`};
- const tabs=weeks.map((w,i)=>`<button class="week-tab ${i===selectedWeek?'selected':''} ${same&&i===currentIndex?'current':''}" data-week="${i}"><b>W${i+1}</b><small>${dateLabel(w)}</small></button>`).join('');
+
+ const monShort=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'short'});
+ const dateLabel=w=>`${w.start}–${w.end} ${monShort}`;
+
+ const monthOptions=[];
+ const base=new Date(y,m-1,1);
+ for(let d=-6;d<=6;d++){
+   const x=new Date(base.getFullYear(),base.getMonth()+d,1);
+   const val=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`;
+   monthOptions.push(`<option value="${val}" ${val===month?'selected':''}>${x.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</option>`);
+ }
+ const weekOptions=weeks.map((w,i)=>`<option value="${i}" ${i===selectedWeek?'selected':''}>W${i+1} · ${dateLabel(w)}${same&&i===currentIndex?' · Current':''}</option>`).join('');
+
+ if($('#weeklyMonthLabel')){
+   $('#weeklyMonthLabel').innerHTML=`<div class="weekly-drop-controls">
+     <label class="weekly-select-shell"><span>▣</span><select id="weeklyMonthSelect">${monthOptions.join('')}</select><i>⌄</i></label>
+     <label class="weekly-select-shell week-select"><span>W</span><select id="weeklyWeekSelect">${weekOptions}</select><i>⌄</i></label>
+   </div>`;
+   $('#weeklyMonthSelect').onchange=e=>{
+     selectedMonth=e.target.value;
+     selectedWeek=null;
+     $('#monthLabel').textContent=monthLabel();
+     renderPerformance();
+     renderWeekly();
+   };
+   $('#weeklyWeekSelect').onchange=e=>{
+     selectedWeek=Number(e.target.value);
+     renderWeekly();
+   };
+ }
+
  const w=weeks[selectedWeek],wd=Array.from({length:w.end-w.start+1},(_,k)=>w.start+k).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
+
  const cards=['3X','2X','STS'].map(t=>{
-   const c=counts(data,t,month),target=wm[`${selectedWeek+1}_${t}`]??Math.round(c.target*wd/Math.max(1,workdaysMonth));
+   const c=counts(data,t,month);
+   const target=wm[`${selectedWeek+1}_${t}`]??Math.round(c.target*wd/Math.max(1,workdaysMonth));
    const actual=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===month&&Number(u.completed_at.slice(8,10))>=w.start&&Number(u.completed_at.slice(8,10))<=w.end).length;
    const pending=Math.max(0,target-actual),pct=target?Math.round(actual/target*100):(actual?100:0),fill=Math.min(100,pct),cls=t==='3X'?'blue':t==='2X'?'green':'purple';
-   return `<div class="weekly-energy-card ${cls}"><div class="weekly-energy-title"><div><span>TRINERGY</span><b>${t}</b></div><strong>${pct}%</strong></div><div class="weekly-energy-main"><div class="weekly-vessel"><div class="vessel-fill" style="height:${fill}%"></div><div class="vessel-glow"></div><span>${actual}/${target}</span></div><div class="weekly-metrics"><div><span>Weekly Target</span><b>${target}</b></div><div><span>Completed</span><b>${actual}</b></div><div><span>Pending</span><b>${pending}</b></div></div></div><div class="weekly-progress-track"><i style="width:${fill}%"></i></div></div>`;
+
+   return `<article class="weekly-neon-card ${cls}">
+      <div class="weekly-neon-top">
+        <div class="weekly-neon-name"><span>TRINERGY</span><b>${t}</b></div>
+        <div class="weekly-neon-percent"><strong>${pct}%</strong><small>COMPLETED</small></div>
+      </div>
+
+      <div class="weekly-neon-content">
+        <div class="weekly-tank-wrap">
+          <div class="weekly-tank">
+            <div class="tank-neck"></div>
+            <div class="tank-glass"></div>
+            <div class="tank-liquid" style="height:${fill}%"><i></i></div>
+            <div class="tank-bubbles"></div>
+            <div class="tank-value"><b>${actual}/${target}</b><small>COMPLETED</small></div>
+          </div>
+          <div class="tank-base"></div>
+        </div>
+
+        <div class="weekly-stat-stack">
+          <div class="weekly-stat-box"><span class="stat-icon">◎</span><span>Weekly<br>Target</span><b>${target}</b></div>
+          <div class="weekly-stat-box"><span class="stat-icon">✓</span><span>Completed</span><b>${actual}</b></div>
+          <div class="weekly-stat-box"><span class="stat-icon">⌛</span><span>Pending</span><b>${pending}</b></div>
+        </div>
+      </div>
+
+      <div class="weekly-neon-progress"><i style="width:${fill}%"></i><b>${pct}%</b></div>
+   </article>`;
  }).join('');
- $('#weeklyGraph').innerHTML=`<div class="weekly-selector-head"><div><b>Selected Week: W${selectedWeek+1}</b><span>${dateLabel(w)} · Monday–Saturday calendar planning; Sunday excluded</span></div></div><div class="week-tabs">${tabs}</div><div class="weekly-energy-grid">${cards}</div>`;
- $$('.week-tab').forEach(b=>b.onclick=()=>{selectedWeek=Number(b.dataset.week);renderWeekly()});
+
+ const weekTiles=weeks.map((wk,i)=>`<button class="week-neon-tile ${i===selectedWeek?'selected':''} ${same&&i===currentIndex?'current':''}" data-week="${i}">
+   <span class="week-cal-icon">▣</span>
+   <span class="week-txt"><b>W${i+1}</b><small>${dateLabel(wk)}</small></span>
+   <span class="week-arrow">›</span>
+ </button>`).join('');
+
+ $('#weeklyGraph').innerHTML=`<div class="weekly-neon-grid">${cards}</div><div class="week-neon-strip">${weekTiles}</div>`;
+ $$('.week-neon-tile').forEach(b=>b.onclick=()=>{selectedWeek=Number(b.dataset.week);renderWeekly()});
 }
 async function boot(){
   const cached=loadPageCache('dashboard',1800000);

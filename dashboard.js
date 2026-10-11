@@ -40,14 +40,43 @@ function kpiHtml(type, cls){
 function renderKpis(){
   $('#kpiGrid').innerHTML = kpiHtml('3X','blue')+kpiHtml('2X','green')+kpiHtml('STS','purple');
 }
+function racingCarSvg(){
+  return `<svg viewBox="0 0 120 48" aria-hidden="true">
+    <path d="M18 31h5l8-13h38l13 7h18c6 0 10 4 10 9v2H18z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="38" cy="37" r="8" fill="#061827" stroke="currentColor" stroke-width="4"/>
+    <circle cx="88" cy="37" r="8" fill="#061827" stroke="currentColor" stroke-width="4"/>
+    <path d="M43 18l8-9h22l13 16" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+  </svg>`;
+}
 function renderPerformance(){
   $('#monthLabel').textContent=monthLabel();
-  $('#performance').innerHTML=['3X','2X','STS'].map(t=>{
-    const c=counts(data,t,selectedMonth), p=c.target?Math.min(100,Math.round(c.completed/c.target*100)):0;
-    return `<div class="prog-row"><strong>${t}</strong><div class="prog-wrap">
-      <div class="prog-meta"><span>Completed <b>${c.completed}</b> / Target <b>${c.target}</b></span><span>${p}%</span></div>
-      <div class="bar"><i style="width:${p}%"></i></div></div><div class="flag">${flagSvg()}</div></div>`;
-  }).join('');
+  $('#performance').innerHTML=`<div class="race-board">${['3X','2X','STS'].map(t=>{
+    const c=counts(data,t,selectedMonth);
+    const p=c.target?Math.min(100,Math.round(c.completed/c.target*100)):0;
+    const pending=Math.max(0,c.target-c.completed);
+    const cls=t==='3X'?'race-blue':t==='2X'?'race-green':'race-purple';
+    const carPos=Math.max(2,Math.min(94,p));
+    return `<div class="race-row ${cls}">
+      <div class="race-type">
+        <span class="race-type-name">${t}</span>
+        <small>TRINERGY</small>
+      </div>
+      <div class="race-main">
+        <div class="race-numbers"><b>${c.completed}</b><span>/</span><b>${c.target}</b><em>Pending ${pending}</em></div>
+        <div class="race-track">
+          <div class="race-progress" style="width:${p}%"></div>
+          <div class="race-dashes"></div>
+          <div class="race-car" style="left:${carPos}%">${racingCarSvg()}<span>${p}%</span></div>
+          <div class="race-finish"><i></i><span>🏁</span></div>
+        </div>
+      </div>
+      <div class="race-percent">
+        <strong>${p}%</strong>
+        <small>COMPLETE</small>
+        <div><i style="width:${p}%"></i></div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
 }
 function renderToday(){
  const d=new Date(),day=d.toISOString().slice(0,10);$('#todayDate').textContent=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});

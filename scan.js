@@ -13,7 +13,7 @@ async function liveUnits(){
 async function loadDropdown(){
   const el=$('#liveUps'); if(!el)return;
   const old=el.value,list=await liveUnits();
-  el.innerHTML='<option value="">Select Live UPS...</option>'+list.map(u=>`<option value="${esc(u.qr_code)}">${esc(u.serial_number||u.qr_code)} · ${u.ups_type} · ${esc(u.current_stage||u.status)}</option>`).join('');
+  el.innerHTML='<option value="">Select Live UPS...</option>'+list.map(u=>`<option value="${esc(u.qr_code)}">${esc(fullSerial(u)||u.qr_code)} · ${u.ups_type} · ${esc(u.current_stage||u.status)}</option>`).join('');
   if([...el.options].some(o=>o.value===old))el.value=old;
 }
 function sstate(){return stateOf(current)||{}}
@@ -132,7 +132,7 @@ async function renderUnit(){
     $('#unitbox').innerHTML=`<div class="panel unit-card completed-terminal">
       <div class="completed-lock-icon">✓</div>
       <span class="eyebrow">${esc(current.qr_code)}</span>
-      <div class="serial-big${faultSerialClass(current)}">${esc(current.serial_number||'Serial')} <small>• ${current.ups_type}</small></div>
+      <div class="serial-big${faultSerialClass(current)}">${esc(fullSerial(current)||'Serial')} <small>• ${current.ups_type}</small></div>
       <h2>UPS COMPLETED</h2>
       <p>This UPS has already been marked Completed and is permanently closed for testing updates.</p>
       <div class="completed-meta"><span>Status <b>COMPLETED</b></span><span>Completed At <b>${esc(doneAt)}</b></span></div>
@@ -149,7 +149,7 @@ async function renderUnit(){
     ? [['Received',true],['STS Test',!!st.hv_passed],['STS Heatrun',!!st.core_heatrun_passed],['480V',!!st.parameters_480v_saved],['Buffer Stock',isStock],['Completed',current.status==='COMPLETED']]
     : [['Received',true],['LV',!!st.lv_passed],['Hi-Pot',!!st.hipot_passed],['HV',!!st.hv_passed],['Heatrun',heatDone(st,current)],['480V',!!st.parameters_480v_saved],['Buffer Stock',isStock],['Completed',current.status==='COMPLETED']];
   $('#unitbox').innerHTML=`<div class="panel unit-card stage-console">
-    <div class="unit-head mobile-unit-head"><div><span class="eyebrow">${esc(current.qr_code)}</span><div class="serial-big${faultSerialClass(current)}">${esc(current.serial_number||'Serial pending')} <small>• ${current.ups_type}</small></div><div class="current-stage-pill">${esc(current.current_stage||current.status)}</div><div class="bay-pill ${occ?'allocated':'missing'}">▦ ${esc(bayName)}</div></div>
+    <div class="unit-head mobile-unit-head"><div><span class="eyebrow">${esc(current.qr_code)}</span><div class="serial-big${faultSerialClass(current)}">${esc(fullSerial(current)||'Serial pending')} <small>• ${current.ups_type}</small></div><div class="current-stage-pill">${esc(current.current_stage||current.status)}</div><div class="bay-pill ${occ?'allocated':'missing'}">▦ ${esc(bayName)}</div></div>
     <label class="engineer-box">Authorized Engineer<select id="engineer"><option value="">Select Engineer</option>${eng.map(e=>`<option value="${e.id}" data-name="${esc(e.engineer_name)}" ${(currentEngineer&&(currentEngineer.id===e.id||currentEngineer.name===e.engineer_name))?'selected':''}>${esc(e.engineer_name)}${e.employee_id?' · '+esc(e.employee_id):''}</option>`).join('')}</select></label></div>
     ${run?`<div class="timer-lock"><b>⏱ Timed Event Running</b><span>${timedEventLabel(run)} is active. Pending stages are locked. Only timer completion or Fault is allowed.</span></div>`:''}
     ${!occ&&current.status==='UNDER_TESTING'&&!current.parked?`<div class="bay-warning"><b>⚠ NO PHYSICAL BAY ALLOCATION</b><span>Stage changes are blocked until a compatible bay is assigned.</span></div>`:''}
@@ -210,7 +210,18 @@ async function startTesting(){
   if(blockCompleted())return;
   if(!needEng())return;
   let pick=current.ups_type==='STS'?await chooseStsBay('STS_TEST'):await chooseCoreBay();if(!pick)return;
-  if(!current.serial_number){const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});if(r.error)return showToast(r.error.message)}
+  if(!current.serial_number){
+    const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});
+    if(r.error)return showToast(r.error.message);
+    const rr=await sb.from('tqr_units').select('*').eq('id',current.id).single();
+    if(!rr.error&&rr.data){
+      const fs=fullSerial(rr.data);
+      if(fs&&fs!==rr.data.serial_number){
+        const ur=await sb.from('tqr_units').update({serial_number:fs}).eq('id',current.id);
+        if(ur.error)return showToast(ur.error.message);
+      }
+    }
+  }
   if(!await assignOccupancy(pick))return;
   const now=nowIso(),stage=current.ups_type==='STS'?'STS TESTING IN PROGRESS':'LV TESTING IN PROGRESS';
   await sb.from('tqr_units').update({status:'UNDER_TESTING',current_stage:stage,testing_started_at:now}).eq('id',current.id);

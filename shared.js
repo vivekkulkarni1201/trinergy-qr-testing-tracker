@@ -90,6 +90,29 @@ function realtimeWatch(name,tables,callback,delay=180){
   tables.forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(_rtTimers[name]);_rtTimers[name]=setTimeout(callback,delay)}));
   ch.subscribe(); return ch;
 }
+
+function fullSerial(u){
+  if(!u) return '';
+  const raw=String(u.serial_number||'').trim();
+  if(!raw) return '';
+  if(/^\d{6}T(?:2X|3X|ST|STS|TST)\d{4}$/i.test(raw)) return raw.toUpperCase();
+
+  const dt=u.received_at||u.created_at||new Date().toISOString();
+  const d=new Date(dt);
+  const ym = Number.isNaN(d.getTime())
+    ? new Date().toISOString().slice(0,7).replace('-','')
+    : `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}`;
+
+  let suffix='';
+  const m=raw.match(/(\d{4})$/);
+  if(m) suffix=m[1];
+  else return raw;
+
+  const t=String(u.ups_type||'').toUpperCase();
+  const code=t==='2X'?'T2X':t==='3X'?'T3X':'TST';
+  return `${ym}${code}${suffix}`;
+}
+
 function faultSerialClass(u){return u?.faulted?' faulted-serial':''}
 function runningTimedEvent(u){const s=stateOf(u)||{};return ['core_heatrun','booster_1','booster_2','booster_3'].find(k=>s[k+'_started']&&!s[k+'_passed'])||null}
 function timedEventLabel(k){return k==='core_heatrun'?'Core Heatrun':k?k.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase()):''}

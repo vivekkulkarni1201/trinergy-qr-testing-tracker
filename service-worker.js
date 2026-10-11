@@ -1,4 +1,4 @@
-const CACHE_NAME='trinergy-pwa-v6.14';
+const CACHE_NAME='trinergy-pwa-v6.14.1';
 const APP_SHELL=[
   './',
   './index.html',

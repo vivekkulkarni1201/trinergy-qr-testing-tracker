@@ -455,3 +455,15 @@ input,select{background:#061827;color:#fff;border:1px solid #225f83;border-radiu
 .race-progress{transition:width .65s cubic-bezier(.22,.8,.25,1)!important}
 .tank-liquid{transition:height .65s cubic-bezier(.22,.8,.25,1)!important;will-change:height}
 .weekly-neon-progress i{transition:width .65s cubic-bezier(.22,.8,.25,1)!important}
+
+
+/* v6.13 COMPLETED = terminal/read-only state */
+.completed-terminal{max-width:780px;margin:28px auto!important;text-align:center;padding:28px!important;border-color:#22e69a!important;background:radial-gradient(circle at 50% 10%,rgba(34,230,154,.14),transparent 36%),linear-gradient(145deg,#08263a,#061827)!important;box-shadow:0 0 28px rgba(34,230,154,.16),inset 0 0 22px rgba(34,230,154,.05)!important}
+.completed-lock-icon{width:74px;height:74px;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px;background:#0ca66b;border:2px solid #41f3ae;color:#fff;font-size:42px;font-weight:900;box-shadow:0 0 26px rgba(40,239,163,.55)}
+.completed-terminal h2{margin:12px 0 7px;font-size:30px;color:#48f1ae;text-shadow:0 0 12px rgba(72,241,174,.34)}
+.completed-terminal p{max-width:620px;margin:0 auto 18px;color:#c9e8dc;line-height:1.5}
+.completed-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:580px;margin:0 auto 14px}
+.completed-meta span{border:1px solid #256a59;border-radius:10px;padding:11px;background:#071d24;color:#8fc9b6}
+.completed-meta b{display:block;margin-top:4px;color:#eafff7}
+.completed-scan-note{max-width:650px;margin:0 auto 18px;padding:12px;border:1px solid #176b55;border-radius:10px;background:#08271f;color:#8ef0c7;font-weight:700}
+@media(max-width:650px){.completed-terminal{margin:14px 0!important;padding:20px 14px!important}.completed-terminal h2{font-size:25px}.completed-meta{grid-template-columns:1fr}.completed-lock-icon{width:62px;height:62px;font-size:34px}}

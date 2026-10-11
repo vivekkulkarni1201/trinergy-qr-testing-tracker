@@ -62,6 +62,12 @@ async function log(action,stage,result='PASS',notes=null){
   await sb.from('tqr_stage_history').insert({unit_id:current.id,action,stage,result,engineer_id:currentEngineer?.id||null,engineer_name:currentEngineer?.name||null,notes});
 }
 function needEng(){if(!currentEngineer){showToast('Select ACTIVE engineer first');return false}return true}
+function isCompleted(){return !!current&&current.status==='COMPLETED'}
+function blockCompleted(){
+  if(!isCompleted())return false;
+  showToast('UPS already COMPLETED — no further action allowed');
+  return true;
+}
 
 async function chooseCoreBay(){
   const d=await loadCore();
@@ -95,6 +101,7 @@ async function requireCompatibleBay(mode='CORE'){
   return occ;
 }
 async function assignBayOnly(){
+  if(blockCompleted())return;
   if(!needEng())return;
   let pick;
   if(current.ups_type==='STS'){
@@ -120,6 +127,20 @@ function heatBox(k,label,st,run){
 async function renderUnit(){
   clearInterval(timerTicker);
   if(!current)return;
+  if(current.status==='COMPLETED'){
+    const doneAt=current.completed_at?new Date(current.completed_at).toLocaleString():'Recorded';
+    $('#unitbox').innerHTML=`<div class="panel unit-card completed-terminal">
+      <div class="completed-lock-icon">✓</div>
+      <span class="eyebrow">${esc(current.qr_code)}</span>
+      <div class="serial-big${faultSerialClass(current)}">${esc(current.serial_number||'Serial')} <small>• ${current.ups_type}</small></div>
+      <h2>UPS COMPLETED</h2>
+      <p>This UPS has already been marked Completed and is permanently closed for testing updates.</p>
+      <div class="completed-meta"><span>Status <b>COMPLETED</b></span><span>Completed At <b>${esc(doneAt)}</b></span></div>
+      <div class="completed-scan-note">QR scan is read-only. Buffer Stock, Parking, Fault, bay assignment and all stage actions are disabled.</div>
+      <a class="btn secondary" href="index.html">BACK TO DASHBOARD</a>
+    </div>`;
+    return;
+  }
   const st=sstate(),eng=await engineers(),last=await lastEngineerForUnit(),occ=await activeOccupancy(),run=runningHeat(st);
   if(last&&eng.some(e=>e.id===last.id||e.engineer_name===last.name))currentEngineer=last;
   const isStock=current.status==='STOCK';
@@ -142,6 +163,7 @@ async function renderUnit(){
 }
 function renderActions(occ){
   const st=sstate(),a=[],run=runningHeat(st);
+  if(current.status==='COMPLETED'){$('#actions').innerHTML='';return}
   if(current.status==='RTA'){a.push(`<div class="action fault-card final-only"><h4>Faulty Area</h4><a class="btn danger" href="faulty.html">OPEN FAULTY AREA</a></div>`);$('#actions').innerHTML=a.join('');return}
   if(current.parked){a.push(`<div class="action parking-card final-only"><h4>Parking Area</h4><a class="btn green big-action" href="parking.html">OPEN PARKING AREA</a></div>`);$('#actions').innerHTML=a.join('');return}
   if(current.status==='STOCK'){a.push(`<div class="action final-only"><h4>Buffer Stock</h4><button class="green big-action" onclick="finishFromStock()">MARK COMPLETED</button></div>`);$('#actions').innerHTML=a.join('');return}
@@ -185,6 +207,7 @@ function renderActions(occ){
   $('#actions').innerHTML=a.join('');startTimerUi(st);
 }
 async function startTesting(){
+  if(blockCompleted())return;
   if(!needEng())return;
   let pick=current.ups_type==='STS'?await chooseStsBay('STS_TEST'):await chooseCoreBay();if(!pick)return;
   if(!current.serial_number){const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});if(r.error)return showToast(r.error.message)}
@@ -194,27 +217,32 @@ async function startTesting(){
   await log('START',current.ups_type==='STS'?'STS TEST':'LV','IN_PROGRESS',pick.bay.bay_name);await reload();
 }
 async function hipot(){
+  if(blockCompleted())return;
   if(!needEng())return;if(!await requireCompatibleBay('CORE'))return;
   const now=nowIso();await sb.from('tqr_stage_state').update({lv_passed:true,lv_passed_at:now,hipot_passed:true,hipot_passed_at:now}).eq('unit_id',current.id);
   await sb.from('tqr_units').update({current_stage:'HI-POT PASSED'}).eq('id',current.id);await log('PASS','LV + HI-POT');await reload();
 }
 async function startHV(){
+  if(blockCompleted())return;
   if(!needEng())return;if(!await requireCompatibleBay('CORE'))return;
   const now=nowIso();await sb.from('tqr_stage_state').update({hv_started:true,hv_started_at:now}).eq('unit_id',current.id);
   await sb.from('tqr_units').update({current_stage:'HV IN PROGRESS'}).eq('id',current.id);await log('START','HV','IN_PROGRESS');await reload();
 }
 async function hvPass(){
+  if(blockCompleted())return;
   if(!needEng())return;if(!await requireCompatibleBay('CORE'))return;
   const now=nowIso();await sb.from('tqr_stage_state').update({hv_passed:true,hv_passed_at:now}).eq('unit_id',current.id);
   await sb.from('tqr_units').update({current_stage:'HV PASSED'}).eq('id',current.id);await log('PASS','HV');await reload();
 }
 async function passStsTest(){
+  if(blockCompleted())return;
   if(!needEng())return;if(!await requireCompatibleBay('STS_TEST'))return;
   const now=nowIso();
   await sb.from('tqr_stage_state').update({lv_passed:true,lv_passed_at:now,hipot_passed:true,hipot_passed_at:now,hv_started:true,hv_started_at:now,hv_passed:true,hv_passed_at:now}).eq('unit_id',current.id);
   await sb.from('tqr_units').update({current_stage:'STS TEST PASSED'}).eq('id',current.id);await log('PASS','STS TEST');await reload();
 }
 async function moveStsToHeatrun(){
+  if(blockCompleted())return;
   if(!needEng())return;if(current.ups_type!=='STS')return;
   const pick=await chooseStsBay('STS_HEATRUN');if(!pick)return;
   const now=nowIso();await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);
@@ -223,6 +251,7 @@ async function moveStsToHeatrun(){
   await log('MOVE','STS HEATRUN BAY','IN_PROGRESS',pick.bay.bay_name);await reload();
 }
 async function heatStart(k){
+  if(blockCompleted())return;
   if(!needEng())return;
   const st=sstate();if(runningHeat(st))return showToast('Timed event already running');
   if(current.ups_type==='STS'){if(k!=='core_heatrun'||!await requireCompatibleBay('STS_HEATRUN'))return}
@@ -243,6 +272,7 @@ async function startTimerUi(st){
   });tick();timerTicker=setInterval(tick,1000);
 }
 async function heatPass(k){
+  if(blockCompleted())return;
   if(!needEng())return;
   if(current.ups_type==='STS'){if(!await requireCompatibleBay('STS_HEATRUN'))return}else if(!await requireCompatibleBay('CORE'))return;
   const st=sstate(),t=await getTimers(),dur=k==='core_heatrun'?(current.ups_type==='STS'?t.sts_heatrun_seconds:t.core_heatrun_seconds):t.booster_heatrun_seconds;
@@ -252,22 +282,35 @@ async function heatPass(k){
   await sb.from('tqr_units').update({current_stage:label}).eq('id',current.id);await log('PASS',label);await reload();
 }
 async function params(){
+  if(blockCompleted())return;
   if(!needEng())return;
   if(current.ups_type==='STS'){if(!await requireCompatibleBay('STS_HEATRUN'))return}else if(!await requireCompatibleBay('CORE'))return;
   await sb.from('tqr_stage_state').update({parameters_480v_saved:true,parameters_480v_saved_at:nowIso()}).eq('unit_id',current.id);
   await sb.from('tqr_units').update({current_stage:'480V / PARAMETERS SAVED'}).eq('id',current.id);await log('PASS','480V / PARAMETERS');await reload();
 }
 async function exitUnit(status){
-  if(!needEng())return;const now=nowIso();await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);
-  const p=status==='COMPLETED'?{status,current_stage:'COMPLETED',completed_at:now}:{status,current_stage:'BUFFER STOCK',stock_at:now};
-  const r=await sb.from('tqr_units').update(p).eq('id',current.id);if(r.error)return showToast(r.error.message);
-  await log('EXIT',status==='COMPLETED'?'COMPLETED':'BUFFER STOCK');await reload();
+  if(blockCompleted())return;
+  if(!needEng())return;const now=nowIso();
+  const p=status==='COMPLETED'?{status,current_stage:'COMPLETED',completed_at:now,parked:false}:{status,current_stage:'BUFFER STOCK',stock_at:now,parked:false};
+  const r=await sb.from('tqr_units').update(p).eq('id',current.id).neq('status','COMPLETED').select('id,status').maybeSingle();
+  if(r.error)return showToast(r.error.message);
+  if(!r.data)return showToast('UPS already COMPLETED — no further action allowed');
+  await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);
+  await log('EXIT',status==='COMPLETED'?'COMPLETED':'BUFFER STOCK');
+  showToast(status==='COMPLETED'?'UPS Completed — record locked':'Moved to Buffer Stock');
+  await reload();
 }
 async function finishFromStock(){
-  if(!needEng())return;const now=nowIso();await sb.from('tqr_units').update({status:'COMPLETED',current_stage:'COMPLETED',completed_at:now}).eq('id',current.id);
-  await log('EXIT','COMPLETED FROM BUFFER STOCK');showToast('Marked Completed');await reload();
+  if(blockCompleted())return;
+  if(!needEng())return;const now=nowIso();
+  const r=await sb.from('tqr_units').update({status:'COMPLETED',current_stage:'COMPLETED',completed_at:now,parked:false}).eq('id',current.id).eq('status','STOCK').select('id').maybeSingle();
+  if(r.error)return showToast(r.error.message);
+  if(!r.data)return showToast('UPS is no longer in Buffer Stock');
+  await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);
+  await log('EXIT','COMPLETED FROM BUFFER STOCK');showToast('UPS Completed — record locked');await reload();
 }
 async function markFaulty(){
+  if(blockCompleted())return;
   if(!needEng())return;if(!confirm('Mark this UPS as Faulty / RTA?'))return;
   const now=nowIso(),st=sstate(),run=runningHeat(st);
   if(run){const stop={};stop[run+'_started']=false;stop[run+'_started_at']=null;const rr=await sb.from('tqr_stage_state').update(stop).eq('unit_id',current.id);if(rr.error)return showToast(rr.error.message)}
@@ -277,6 +320,7 @@ async function markFaulty(){
   await log('FAULT','FAULTY LOCATION','FAIL',run?`Stopped ${run}`:'Fault during testing');clearInterval(timerTicker);showToast('Moved to Faulty Area');await reload();
 }
 async function moveToParking(){
+  if(blockCompleted())return;
   if(!needEng())return;const now=nowIso(),occ=await activeOccupancy();if(!occ)return showToast('UPS has no physical bay to release');
   await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);
   const r=await sb.from('tqr_units').update({parked:true,parked_at:now,parked_from_stage:current.current_stage}).eq('id',current.id);if(r.error)return showToast(r.error.message);

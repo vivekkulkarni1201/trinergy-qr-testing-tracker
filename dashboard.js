@@ -67,7 +67,7 @@ function renderPerformance(){
           <div class="race-progress" style="width:${p}%"></div>
           <div class="race-dashes"></div>
           <div class="race-car" style="left:${carPos}%">${racingCarSvg()}</div>
-          <div class="race-finish"><i></i><span>🏁</span></div>
+          <div class="race-finish"><div class="race-wave-flag" aria-label="finish flag"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
         </div>
       </div>
       <div class="race-percent">

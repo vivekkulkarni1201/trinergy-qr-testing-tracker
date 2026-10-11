@@ -6,6 +6,47 @@ $$('.admin-tab[data-pane]').forEach(b=>b.onclick=()=>showPane(b.dataset.pane));
 async function loadTargets(){const d=await loadCore(),m=$('#targetMonth').value||ym();for(const t of ['3X','2X','STS']){const v=d.t.find(x=>x.ups_type===t&&monthOf(x.month_start)===m)?.target||0;$('#tg'+t.replace('X','x').toLowerCase()).value=v}}
 async function saveTargets(){const m=$('#targetMonth').value+'-01',rows=[['3X','#tg3x'],['2X','#tg2x'],['STS','#tgsts']].map(([ups_type,id])=>({month_start:m,ups_type,target:Number($(id).value)||0}));const r=await sb.from('tqr_monthly_targets').upsert(rows,{onConflict:'month_start,ups_type'});showToast(r.error?r.error.message:'Targets saved')}
 
+async function loadDailyTargets(){
+ const r=await sb.from('tqr_settings').select('*').in('setting_key',['planned_receipt_per_day','planned_sts_per_day']);
+ if(r.error)return showToast(r.error.message);
+ const m=Object.fromEntries((r.data||[]).map(x=>[x.setting_key,Number(x.setting_value)||0]));
+ $('#dailyCoreTarget').value=m.planned_receipt_per_day||0;
+ $('#dailyStsTarget').value=m.planned_sts_per_day||0;
+}
+async function saveDailyTargets(){
+ const rows=[
+   {setting_key:'planned_receipt_per_day',setting_value:String(Number($('#dailyCoreTarget').value)||0)},
+   {setting_key:'planned_sts_per_day',setting_value:String(Number($('#dailyStsTarget').value)||0)}
+ ];
+ const r=await sb.from('tqr_settings').upsert(rows,{onConflict:'setting_key'});
+ showToast(r.error?r.error.message:'Daily targets saved');
+}
+function splitDateTime(v){if(!v)return['',''];const d=new Date(v);if(Number.isNaN(d.getTime()))return[String(v).slice(0,10),''];return[d.toLocaleDateString('en-GB'),d.toLocaleTimeString('en-GB',{hour12:false})]}
+async function loadExportPane(){
+ const now=ym(); if(!$('#exportFrom').value)$('#exportFrom').value='2024-01'; if(!$('#exportTo').value)$('#exportTo').value=now;
+ const d=await loadCore(),hr=await sb.from('tqr_historical_months').select('*').order('month_start'),months=new Set((hr.data||[]).map(x=>monthOf(x.month_start)));
+ d.u.forEach(u=>{if(u.received_at)months.add(monthOf(u.received_at));if(u.completed_at)months.add(monthOf(u.completed_at))});d.t.forEach(x=>months.add(monthOf(x.month_start)));
+ $('#exportPreview').innerHTML=`<div class="summary-cards"><div class="summary-card"><span>UPS RECORDS</span><b>${d.u.length}</b></div><div class="summary-card"><span>HISTORY MONTHS</span><b>${months.size}</b></div><div class="summary-card"><span>EARLIEST EXPORT</span><b>2024</b></div></div>`;
+}
+async function downloadHistoryExcel(){
+ if(typeof XLSX==='undefined')return showToast('Excel library not loaded');
+ const from=$('#exportFrom').value||'2024-01',to=$('#exportTo').value||ym(); if(from>to)return showToast('From Month cannot be after To Month');
+ showToast('Preparing Excel…');
+ const [d,hr,gr]=await Promise.all([loadCore(),sb.from('tqr_historical_months').select('*').order('month_start'),sb.from('tqr_daily_gap_reason').select('*')]);
+ if(hr.error)return showToast(hr.error.message); if(gr.error)return showToast(gr.error.message);
+ const hist=hr.data||[], histMap={};hist.forEach(x=>{const m=monthOf(x.month_start);(histMap[m]??={})[x.ups_type]=x});
+ const targetMap={};d.t.forEach(x=>{const m=monthOf(x.month_start);(targetMap[m]??={})[x.ups_type]=Number(x.target)||0});
+ const monthSet=new Set([...Object.keys(histMap),...Object.keys(targetMap)]);d.u.forEach(u=>{if(u.received_at)monthSet.add(monthOf(u.received_at));if(u.completed_at)monthSet.add(monthOf(u.completed_at))});
+ const months=[...monthSet].filter(m=>m>=from&&m<=to).sort();
+ const monthly=[];
+ for(const m of months){for(const t of ['3X','2X','STS']){const liveR=d.u.filter(u=>u.ups_type===t&&monthOf(u.received_at)===m).length,liveC=d.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===m).length,hasLive=d.u.some(u=>u.ups_type===t&&(monthOf(u.received_at)===m||monthOf(u.completed_at)===m)),h=histMap[m]?.[t]||{},target=targetMap[m]?.[t]??Number(h.target||0),received=hasLive?liveR:Number(h.received||0),completed=hasLive?liveC:Number(h.completed||0);monthly.push({Year:Number(m.slice(0,4)),Month:m,Type:t,Target:target,Received:received,Completed:completed,Pending:Math.max(0,target-completed),Notes:h.notes||''})}}
+ const detailed=d.u.filter(u=>{const m=monthOf(u.received_at||u.completed_at);return m>=from&&m<=to}).sort((a,b)=>new Date(a.received_at||0)-new Date(b.received_at||0)).map(u=>{const [rd,rt]=splitDateTime(u.received_at),[cd,ct]=splitDateTime(u.completed_at);return {'Full Serial Number':u.serial_number||'',Type:u.ups_type,'QR / Tracker ID':u.qr_code||'','Received Date':rd,'Received Time':rt,'Completed Date':cd,'Completed Time':ct,'Final / Current Status':u.status||'','Current Stage':u.current_stage||'','Ever Faulted':u.faulted?'YES':'NO','Currently Parked':u.parked?'YES':'NO'}});
+ const daily=[];for(const m of months){const [Y,M]=m.split('-').map(Number),days=new Date(Y,M,0).getDate();for(let day=1;day<=days;day++){const key=`${m}-${String(day).padStart(2,'0')}`,isSun=new Date(Y,M-1,day).getDay()===0,c3=d.u.filter(u=>u.ups_type==='3X'&&String(u.received_at||'').slice(0,10)===key).length,c2=d.u.filter(u=>u.ups_type==='2X'&&String(u.received_at||'').slice(0,10)===key).length,sts=d.u.filter(u=>u.ups_type==='STS'&&String(u.received_at||'').slice(0,10)===key).length,reason=(gr.data||[]).find(x=>monthOf(x.month_start)===m&&Number(x.day_of_month)===day)?.reason_code||'';daily.push({Date:key,Day:new Date(Y,M-1,day).toLocaleDateString('en',{weekday:'short'}),'3X Received':c3,'2X Received':c2,'STS Received':sts,'Total Received':c3+c2+sts,'Sunday':isSun?'YES':'NO','Gap Reason':reason})}}
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(monthly),'Monthly Summary');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detailed),'UPS Detailed History');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(daily),'Daily Distribution');
+ XLSX.writeFile(wb,`Trinergy_History_${from}_to_${to}.xlsx`);showToast('Excel downloaded');
+}
+
+
 async function loadHistorical(){
  const m=$('#histMonth').value||ym(),r=await sb.from('tqr_historical_months').select('*').eq('month_start',m+'-01');
  if(r.error)return showToast(r.error.message);
@@ -76,8 +117,8 @@ async function addReason(){const reason_code=$('#reasonCode').value.trim().toUpp
 async function toggleReason(code,active){const r=await sb.from('tqr_gap_reasons').update({active}).eq('reason_code',code);if(r.error)showToast(r.error.message)}
 async function saveReason(code){const r=await sb.from('tqr_gap_reasons').update({reason_text:$('#rt_'+code).value.trim()}).eq('reason_code',code);showToast(r.error?r.error.message:'Reason updated')}
 
-async function loadPane(id){({targets:loadTargets,historical:loadHistorical,weekly:loadWeekly,serials:loadSerials,engineers:loadEngineers,bays:loadBays,stages:loadStages,timers:loadTimers,images:loadKpiImages,reasons:loadReasons,history:loadHistory}[id]||(()=>{}))()}
+async function loadPane(id){({targets:async()=>{await loadTargets();await loadDailyTargets()},historical:loadHistorical,export:loadExportPane,weekly:loadWeekly,serials:loadSerials,engineers:loadEngineers,bays:loadBays,stages:loadStages,timers:loadTimers,images:loadKpiImages,reasons:loadReasons,history:loadHistory}[id]||(()=>{}))()}
 $('#targetMonth').value=ym();$('#histMonth').value=ym();$('#weekMonth').value=ym();$('#targetMonth').onchange=loadTargets;$('#histMonth').onchange=loadHistorical;$('#weekMonth').onchange=loadWeekly;$('#weekNo').onchange=loadWeekly;
-$('#saveTargets').onclick=saveTargets;$('#saveHistorical').onclick=saveHistorical;$('#saveWeekly').onclick=saveWeekly;$('#importHistorical').onclick=importHistorical;$('#addEngineer').onclick=addEngineer;$('#addBay').onclick=addBay;$('#addStage').onclick=addStage;$('#saveTimers').onclick=saveTimers;$('#saveOldSerial').onclick=saveOldSerial;$('#addReason').onclick=addReason;$('#searchHistory').onclick=loadHistory;
+$('#saveTargets').onclick=saveTargets;$('#saveDailyTargets').onclick=saveDailyTargets;$('#downloadHistoryExcel').onclick=downloadHistoryExcel;$('#saveHistorical').onclick=saveHistorical;$('#saveWeekly').onclick=saveWeekly;$('#importHistorical').onclick=importHistorical;$('#addEngineer').onclick=addEngineer;$('#addBay').onclick=addBay;$('#addStage').onclick=addStage;$('#saveTimers').onclick=saveTimers;$('#saveOldSerial').onclick=saveOldSerial;$('#addReason').onclick=addReason;$('#searchHistory').onclick=loadHistory;
 Object.assign(window,{saveSerial,toggleEngineer,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage});
 showPane('targets');

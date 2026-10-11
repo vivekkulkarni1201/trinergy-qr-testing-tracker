@@ -4,7 +4,7 @@
 <div class="page-title"><div><h1>Admin Control Center</h1><div class="muted">Dashboard remains isolated from Admin changes</div></div></div>
 <div class="admin-tabs">
 <button class="admin-tab active" data-pane="targets">Targets</button>
-<button class="admin-tab" data-pane="historical">Historical Data</button><button class="admin-tab" data-pane="weekly">Weekly Targets</button>
+<button class="admin-tab" data-pane="historical">Historical Data</button><button class="admin-tab" data-pane="export">Data Export</button><button class="admin-tab" data-pane="weekly">Weekly Targets</button>
 <button class="admin-tab" data-pane="serials">Serial Numbers</button>
 <button class="admin-tab" data-pane="engineers">Engineers</button>
 <button class="admin-tab" data-pane="bays">Test Bays</button>
@@ -15,7 +15,18 @@
 <button class="admin-tab" data-pane="reasons">Gap Reasons</button><button class="admin-tab" data-pane="history">Scan History</button>
 <a class="admin-tab qr-link" href="qr.html">QR Generator ↗</a>
 </div>
-<div class="panel admin-pane active" id="pane-targets"><div class="panel-head"><h2>Monthly Targets</h2></div><div class="panel-body"><div class="form-grid"><label>Month<input id="targetMonth" type="month"></label><label>3X Target<input id="tg3x" type="number"></label><label>2X Target<input id="tg2x" type="number"></label><label>STS Target<input id="tgsts" type="number"></label></div><br><button id="saveTargets">Save Targets</button></div></div>
+<div class="panel admin-pane active" id="pane-targets">
+<div class="panel-head"><h2>Targets & Daily Receipt Plan</h2><span class="muted">Monthly production targets + daily receipt plan used by Reports</span></div>
+<div class="panel-body">
+<h3>Monthly Targets</h3>
+<div class="form-grid"><label>Month<input id="targetMonth" type="month"></label><label>3X Target<input id="tg3x" type="number"></label><label>2X Target<input id="tg2x" type="number"></label><label>STS Target<input id="tgsts" type="number"></label></div>
+<br><button id="saveTargets">Save Monthly Targets</button>
+<hr class="admin-separator">
+<h3>Daily Receipt Targets</h3>
+<p class="muted">Used in Reports → Daily Planned Receipt. Sunday remains planned 0 for daily input distribution.</p>
+<div class="form-grid"><label>Core Daily Target (3X + 2X)<input id="dailyCoreTarget" type="number" min="0"></label><label>STS Daily Target<input id="dailyStsTarget" type="number" min="0"></label></div>
+<br><button id="saveDailyTargets" class="green">Save Daily Targets</button>
+</div></div>
 <div class="panel admin-pane" id="pane-historical">
 <div class="panel-head"><h2>Historical / Monthly Data</h2><span class="muted">Past month target, received and completed data</span></div>
 <div class="panel-body">
@@ -26,6 +37,15 @@
 <div class="admin-tile"><h3>STS</h3><label>Target<input id="hsTarget" type="number" min="0"></label><label>Received<input id="hsReceived" type="number" min="0"></label><label>Completed<input id="hsCompleted" type="number" min="0"></label></div>
 </div><br><button id="saveHistorical" class="green">Save Historical Month</button> <input id="histExcel" type="file" accept=".xlsx,.xls,.csv"><button id="importHistorical">Import Excel</button><p class="muted">Excel columns: Month, 3X Target, 3X Received, 3X Completed, 2X Target, 2X Received, 2X Completed, STS Target, STS Received, STS Completed, Notes</p>
 <div id="historicalList"></div></div></div>
+<div class="panel admin-pane" id="pane-export">
+<div class="panel-head"><h2>Data Export / History Download</h2><span class="muted">Download management-ready Excel whenever required</span></div>
+<div class="panel-body">
+<div class="export-grid">
+  <div class="admin-tile"><h3>Complete Historical Workbook</h3><p class="muted">Includes Monthly Summary, UPS Detailed History and Daily Distribution.</p><button id="downloadHistoryExcel" class="green">Download Complete Excel</button></div>
+  <div class="admin-tile"><h3>Export Scope</h3><label>From Month<input id="exportFrom" type="month" min="2024-01"></label><label>To Month<input id="exportTo" type="month"></label><p class="muted">Live tracker data is merged with manually entered historical months.</p></div>
+</div>
+<div id="exportPreview" class="export-preview"></div>
+</div></div>
 <div class="panel admin-pane" id="pane-weekly"><div class="panel-head"><h2>Weekly Targets</h2><span class="muted">Optional manual targets for dashboard weekly graph</span></div><div class="panel-body"><div class="form-grid"><label>Month<input id="weekMonth" type="month"></label><label>Week<select id="weekNo"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label><label>3X Target<input id="w3" type="number"></label><label>2X Target<input id="w2" type="number"></label><label>STS Target<input id="ws" type="number"></label></div><br><button id="saveWeekly">Save Weekly Target</button></div></div>
 <div class="panel admin-pane" id="pane-serials"><div class="panel-head"><h2>Next Serial Counters</h2></div><div class="panel-body"><div class="admin-grid" id="serials"></div></div></div>
 <div class="panel admin-pane" id="pane-engineers"><div class="panel-head"><h2>Testing Engineers</h2></div><div class="panel-body"><div class="scan-row"><input id="engName" placeholder="Engineer name"><input id="engId" placeholder="Employee ID"><button id="addEngineer">Add / Reactivate</button></div><table class="table"><thead><tr><th>Name</th><th>Employee ID</th><th>Status</th></tr></thead><tbody id="engineerTable"></tbody></table></div></div>

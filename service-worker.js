@@ -1,4 +1,4 @@
-const CACHE_NAME='trinergy-pwa-v6.9';
+const CACHE_NAME='trinergy-pwa-v6.10';
 const APP_SHELL=[
   './',
   './index.html',
@@ -26,7 +26,8 @@ const APP_SHELL=[
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
-  './trinergy-ups.png'
+  './trinergy-ups.png',
+  './trinergy-brand-banner.png'
 ];
 
 self.addEventListener('install', event=>{

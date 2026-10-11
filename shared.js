@@ -26,7 +26,7 @@ function navHtml(active){
     ['admin','admin.html','⚙','Admin'],
     ['reports','reports.html','▥','Reports']
   ];
-  return `<div class="brand brand-rich"><span class="brandmark">◆</span><div><b>TRINERGY</b><small>QR TESTING TRACKER</small></div></div>
+  return `<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div>
   <nav class="navtabs">${items.map(([id,href,icon,label])=>`<a class="navtab ${active===id?'active':''}" href="${href}"><span>${icon}</span>${label}</a>`).join('')}</nav>
   <div class="navright"><span class="live-dot"></span><span class="live-label">Live</span><div class="clockbox"><span id="dateNow"></span><b id="timeNow"></b></div></div>`;
 }
@@ -82,7 +82,7 @@ function directScan(qr){ location.href = `scan.html?qr=${encodeURIComponent(qr)}
 
 function mountScanHeader(){
   const e=$('#topbar'); if(!e)return;
-  e.innerHTML=`<div class="brand brand-rich"><span class="brandmark">◆</span><div><b>TRINERGY</b><small>UPS TEST CONTROL</small></div></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`;
+  e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`;
 }
 let _rtTimers={};
 function realtimeWatch(name,tables,callback,delay=180){

@@ -27,7 +27,7 @@ input,select{background:#061827;color:#fff;border:1px solid #225f83;border-radiu
 .donut{--accent:#0af;--pct:0;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) calc(var(--pct)*1%),rgba(255,255,255,.08) 0);filter:drop-shadow(0 0 12px var(--accent));position:relative}.donut:before{content:"";position:absolute;inset:11px;background:#03101b;border-radius:50%}.donut div{position:relative;text-align:center;color:#fff}.donut strong{font-size:25px;display:block}.donut small{font-size:10px;color:#bcd1df}.blue .donut{--accent:#16c7ff}.green .donut{--accent:#25e0a1}.purple .donut{--accent:#c56cff}
 .racks{display:flex;align-items:flex-end;justify-content:center;gap:4px}.rack{width:31px;height:82px;border:1px solid #31536b;background:linear-gradient(90deg,#07111a,#24394a 50%,#07111a);box-shadow:inset -3px 0 8px #0008}.rack:nth-child(2){height:95px}.rack:after{content:"";display:block;width:6px;height:12px;background:#17dfff;margin:13px auto;box-shadow:0 0 8px #17dfff}
 .kpi-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:16px}.metric{min-height:92px;border:1px solid #1b526e;border-radius:9px;background:#071725cc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px}.metric span{font-size:11px;font-weight:800;min-height:28px;display:flex;align-items:center}.metric b{font-size:22px}.metric.target{color:#ff62d6;border-color:#832366;background:#271025cc}.metric.received{color:#22d5ff;border-color:#0b6596;background:#082944cc}.metric.completed{color:#20f39b;border-color:#0b7651;background:#082c23cc}.metric.testing{color:#ffc521;border-color:#77600b;background:#2b250acc}.metric.stock{color:#df63ff;border-color:#6d2784;background:#2b1231cc}
-.mid-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(360px,.9fr);gap:14px;margin-top:14px}
+.mid-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(390px,1fr);gap:14px;margin-top:14px}
 .month-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.month-nav{display:flex;align-items:center;border:1px solid #185c83;border-radius:10px;overflow:hidden;background:#071b2d}.month-nav button{border:0;border-radius:0;box-shadow:none;padding:8px 12px;background:#0a3353}.month-label{padding:8px 18px;min-width:135px;text-align:center;font-weight:800}
 .prog-row{display:grid;grid-template-columns:55px 1fr 58px;gap:12px;align-items:center;margin:14px 0}.prog-row>strong{font-size:18px}.prog-wrap{position:relative;padding-top:24px}.prog-meta{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;color:#73d5ff;font-size:12px}.prog-meta b{color:#fff}.bar{height:17px;border-radius:999px;background:#020a10;border:1px solid #1b678e;overflow:hidden;box-shadow:inset 0 0 10px #000}.bar>i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#0c8fff,#20d8ff);box-shadow:0 0 16px #0fbfff}.prog-row:nth-child(2) .bar>i{background:linear-gradient(90deg,#0fa86f,#27e59e)}.prog-row:nth-child(3) .bar>i{background:linear-gradient(90deg,#7638e8,#bc5dff)}
 .flag{width:58px;height:50px;display:grid;place-items:center}.flag-svg{width:58px;height:48px;display:block;filter:drop-shadow(0 0 7px #ffffff88)}
@@ -290,4 +290,107 @@ input,select{background:#061827;color:#fff;border:1px solid #225f83;border-radiu
   .race-row{grid-template-columns:68px minmax(0,1fr);grid-template-areas:"type main" "percent percent";min-height:0}
   .race-type{grid-area:type;height:82px}.race-main{grid-area:main}.race-percent{grid-area:percent;display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:8px;text-align:left}
   .race-percent>div{margin-top:0}.race-numbers em{display:none}.race-car{width:56px}.race-finish span{font-size:23px}
+}
+
+
+/* v6.11.1 monthly-mobile polish */
+.panel-head{flex-wrap:wrap}
+.month-head h2,.today-title h2{line-height:1.1}
+#performance .race-board{gap:14px}
+.race-row{grid-template-columns:94px minmax(0,1fr) 118px;gap:12px;min-height:98px;padding:10px 12px;border-radius:16px}
+.race-type{height:72px}
+.race-type-name{font-size:28px}
+.race-main{padding-right:2px}
+.race-numbers{gap:6px;margin:0 0 8px 3px}
+.race-numbers b{font-size:18px}
+.race-numbers span{font-size:17px}
+.race-track{height:42px;border-radius:11px}
+.race-dashes{left:4%;right:7%;height:3px;background:repeating-linear-gradient(90deg,var(--race) 0 22px,transparent 22px 38px)}
+.race-car{top:4px;width:66px;height:33px}
+.race-car span{display:none!important}
+.race-finish{right:5px;top:1px;bottom:1px;width:28px;align-items:center}
+.race-finish i{display:none}
+.race-finish span{font-size:24px;margin:0;line-height:1}
+.race-percent{padding:8px 10px 8px;border-radius:14px}
+.race-percent strong{font-size:24px}
+.race-percent small{font-size:8px;letter-spacing:1.4px}
+.race-percent>div{display:none}
+.today-table th,.today-table td{padding:12px 8px}
+.today-table th{font-size:14px}
+.today-table td{font-size:15px}
+
+@media(max-width:1180px){
+  .mid-grid{grid-template-columns:1fr}
+}
+
+@media(max-width:700px){
+  .month-head,.today-title{align-items:flex-start}
+  .month-head h2,.today-title h2{font-size:19px}
+  .month-nav{width:100%;max-width:100%}
+  .month-nav button{flex:0 0 42px;padding:10px 0}
+  .month-label{flex:1;min-width:0;padding:10px 8px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .date-chip{padding:8px 10px;max-width:100%}
+  .today-table{font-size:13px}
+  .today-table th,.today-table td{padding:9px 5px;font-size:13px}
+
+  .kpi{min-height:auto;padding:16px}
+  .kpi-top{grid-template-columns:1fr 84px;gap:8px}
+  .kpi-title h1{font-size:42px}
+  .kpi-title b{font-size:13px}
+  .donut{width:84px;height:84px}
+  .donut strong{font-size:22px}
+  .kpi-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;overflow:visible}
+  .metric{min-height:78px;padding:8px 6px}
+  .metric span{font-size:11px;min-height:22px}
+  .metric b{font-size:22px}
+  .metric.stock{grid-column:1/-1}
+
+  .race-row{grid-template-columns:72px minmax(0,1fr);grid-template-areas:"type main" "percent percent";gap:10px;padding:10px 10px 12px;min-height:0}
+  .race-type{grid-area:type;height:74px}
+  .race-type-name{font-size:24px}
+  .race-type small{font-size:6px;letter-spacing:1.6px}
+  .race-main{grid-area:main}
+  .race-numbers{margin-bottom:6px;gap:4px;flex-wrap:wrap}
+  .race-numbers b{font-size:16px}
+  .race-numbers span{font-size:14px}
+  .race-numbers em{display:block;margin-left:0;padding-left:0;border-left:0;font-size:11px;flex-basis:100%}
+  .race-track{height:38px}
+  .race-dashes{left:5%;right:8%;background:repeating-linear-gradient(90deg,var(--race) 0 18px,transparent 18px 30px)}
+  .race-car{width:54px;height:28px;top:5px}
+  .race-finish{right:3px;width:24px}
+  .race-finish span{font-size:20px}
+  .race-percent{grid-area:percent;display:grid;grid-template-columns:auto auto;align-items:center;justify-content:space-between;gap:8px;text-align:left;padding:10px 12px}
+  .race-percent strong{font-size:22px}
+  .race-percent small{font-size:9px}
+}
+
+@media(max-width:430px){
+  main{padding:10px 10px 24px}
+  .panel-head{padding:12px 14px}
+  .panel-body{padding:12px}
+  .month-head h2,.today-title h2{font-size:17px}
+  .month-nav button{flex-basis:38px}
+  .month-label{font-size:14px;padding:9px 6px}
+  .date-chip span{font-size:12px}
+
+  .kpi{padding:14px}
+  .kpi-title h1{font-size:34px}
+  .kpi-title b{font-size:12px}
+  .donut{width:78px;height:78px}
+  .donut strong{font-size:20px}
+  .metric{min-height:72px}
+  .metric span{font-size:10px}
+  .metric b{font-size:20px}
+
+  .race-row{padding:9px 9px 11px}
+  .race-type{height:68px}
+  .race-type-name{font-size:21px}
+  .race-numbers b{font-size:14px}
+  .race-numbers span{font-size:13px}
+  .race-numbers em{font-size:10px}
+  .race-track{height:35px}
+  .race-car{width:49px;height:25px;top:4px}
+  .race-finish span{font-size:18px}
+  .race-percent strong{font-size:20px}
+  .today-table th,.today-table td{padding:7px 4px;font-size:12px}
 }

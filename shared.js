@@ -47,18 +47,37 @@ async function table(name, select='*'){
   return r.data || [];
 }
 async function loadCore(){
-  const [u,t,b,o,h,st]=await Promise.all([table('tqr_units'),table('tqr_monthly_targets'),table('tqr_bays'),table('tqr_bay_occupancy'),table('tqr_stage_history'),table('tqr_stage_state')]);
+  const [u,t,b,o,h,st,op]=await Promise.all([
+    table('tqr_units'),
+    table('tqr_monthly_targets'),
+    table('tqr_bays'),
+    table('tqr_bay_occupancy'),
+    table('tqr_stage_history'),
+    table('tqr_stage_state'),
+    table('tqr_month_opening_counts')
+  ]);
   const sm=Object.fromEntries(st.map(x=>[x.unit_id,x]));u.forEach(x=>x.tqr_stage_state=sm[x.id]||null);
-  return {u,t,b,o:o.filter(x=>!x.released_at),h,st};
+  return {u,t,b,o:o.filter(x=>!x.released_at),h,st,op};
 }
 function monthOf(v){ return v ? String(v).slice(0,7) : ''; }
+function openingCounts(data,type,m){
+  const row=(data.op||[]).find(x=>x.ups_type===type && monthOf(x.month_start)===m);
+  return {received:Number(row?.received||0),completed:Number(row?.completed||0),as_of_date:row?.as_of_date||null};
+}
 function counts(data,type,m){
   const arr = data.u.filter(x=>x.ups_type===type);
   const target = Number(data.t.find(x=>x.ups_type===type && monthOf(x.month_start)===m)?.target || 0);
+  const opening=openingCounts(data,type,m);
+  const liveReceived=arr.filter(x=>monthOf(x.received_at)===m).length;
+  const liveCompleted=arr.filter(x=>x.status==='COMPLETED' && monthOf(x.completed_at)===m).length;
   return {
     target,
-    received: arr.filter(x=>monthOf(x.received_at)===m).length,
-    completed: arr.filter(x=>x.status==='COMPLETED' && monthOf(x.completed_at)===m).length,
+    received: opening.received + liveReceived,
+    completed: opening.completed + liveCompleted,
+    openingReceived: opening.received,
+    openingCompleted: opening.completed,
+    liveReceived,
+    liveCompleted,
     under: arr.filter(x=>x.status==='UNDER_TESTING').length,
     stock: arr.filter(x=>x.status==='STOCK').length
   };

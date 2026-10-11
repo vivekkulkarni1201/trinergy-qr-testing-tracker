@@ -24,7 +24,7 @@ async function saveDailyTargets(){
 function splitDateTime(v){if(!v)return['',''];const d=new Date(v);if(Number.isNaN(d.getTime()))return[String(v).slice(0,10),''];return[d.toLocaleDateString('en-GB'),d.toLocaleTimeString('en-GB',{hour12:false})]}
 async function loadExportPane(){
  const now=ym(); if(!$('#exportFrom').value)$('#exportFrom').value='2024-01'; if(!$('#exportTo').value)$('#exportTo').value=now;
- const d=await loadCore(),hr=await sb.from('tqr_historical_months').select('*').order('month_start'),months=new Set((hr.data||[]).map(x=>monthOf(x.month_start)));
+ const d=await loadCore(),hr=await sb.from('tqr_historical_months').select('*').order('month_start'),months=new Set((hr.data||[]).map(x=>monthOf(x.month_start)));(d.op||[]).forEach(x=>months.add(monthOf(x.month_start)));
  d.u.forEach(u=>{if(u.received_at)months.add(monthOf(u.received_at));if(u.completed_at)months.add(monthOf(u.completed_at))});d.t.forEach(x=>months.add(monthOf(x.month_start)));
  $('#exportPreview').innerHTML=`<div class="summary-cards"><div class="summary-card"><span>UPS RECORDS</span><b>${d.u.length}</b></div><div class="summary-card"><span>HISTORY MONTHS</span><b>${months.size}</b></div><div class="summary-card"><span>EARLIEST EXPORT</span><b>2024</b></div></div>`;
 }
@@ -39,13 +39,67 @@ async function downloadHistoryExcel(){
  const monthSet=new Set([...Object.keys(histMap),...Object.keys(targetMap)]);d.u.forEach(u=>{if(u.received_at)monthSet.add(monthOf(u.received_at));if(u.completed_at)monthSet.add(monthOf(u.completed_at))});
  const months=[...monthSet].filter(m=>m>=from&&m<=to).sort();
  const monthly=[];
- for(const m of months){for(const t of ['3X','2X','STS']){const liveR=d.u.filter(u=>u.ups_type===t&&monthOf(u.received_at)===m).length,liveC=d.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===m).length,hasLive=d.u.some(u=>u.ups_type===t&&(monthOf(u.received_at)===m||monthOf(u.completed_at)===m)),h=histMap[m]?.[t]||{},target=targetMap[m]?.[t]??Number(h.target||0),received=hasLive?liveR:Number(h.received||0),completed=hasLive?liveC:Number(h.completed||0);monthly.push({Year:Number(m.slice(0,4)),Month:m,Type:t,Target:target,Received:received,Completed:completed,Pending:Math.max(0,target-completed),Notes:h.notes||''})}}
+ for(const m of months){for(const t of ['3X','2X','STS']){
+   const h=histMap[m]?.[t]||{},c=counts(d,t,m);
+   const hasTrackerData=(d.op||[]).some(x=>x.ups_type===t&&monthOf(x.month_start)===m)||d.u.some(u=>u.ups_type===t&&(monthOf(u.received_at)===m||monthOf(u.completed_at)===m));
+   const target=targetMap[m]?.[t]??Number(h.target||0);
+   const received=hasTrackerData?c.received:Number(h.received||0);
+   const completed=hasTrackerData?c.completed:Number(h.completed||0);
+   monthly.push({Year:Number(m.slice(0,4)),Month:m,Type:t,Target:target,Received:received,Completed:completed,Pending:Math.max(0,target-completed),'Opening Received':c.openingReceived||0,'Opening Completed':c.openingCompleted||0,Notes:h.notes||''})
+ }}
  const detailed=d.u.filter(u=>{const m=monthOf(u.received_at||u.completed_at);return m>=from&&m<=to}).sort((a,b)=>new Date(a.received_at||0)-new Date(b.received_at||0)).map(u=>{const [rd,rt]=splitDateTime(u.received_at),[cd,ct]=splitDateTime(u.completed_at);return {'Full Serial Number':fullSerial(u)||'',Type:u.ups_type,'QR / Tracker ID':u.qr_code||'','Received Date':rd,'Received Time':rt,'Completed Date':cd,'Completed Time':ct,'Final / Current Status':u.status||'','Current Stage':u.current_stage||'','Ever Faulted':u.faulted?'YES':'NO','Currently Parked':u.parked?'YES':'NO'}});
  const daily=[];for(const m of months){const [Y,M]=m.split('-').map(Number),days=new Date(Y,M,0).getDate();for(let day=1;day<=days;day++){const key=`${m}-${String(day).padStart(2,'0')}`,isSun=new Date(Y,M-1,day).getDay()===0,c3=d.u.filter(u=>u.ups_type==='3X'&&String(u.received_at||'').slice(0,10)===key).length,c2=d.u.filter(u=>u.ups_type==='2X'&&String(u.received_at||'').slice(0,10)===key).length,sts=d.u.filter(u=>u.ups_type==='STS'&&String(u.received_at||'').slice(0,10)===key).length,reason=(gr.data||[]).find(x=>monthOf(x.month_start)===m&&Number(x.day_of_month)===day)?.reason_code||'';daily.push({Date:key,Day:new Date(Y,M-1,day).toLocaleDateString('en',{weekday:'short'}),'3X Received':c3,'2X Received':c2,'STS Received':sts,'Total Received':c3+c2+sts,'Sunday':isSun?'YES':'NO','Gap Reason':reason})}}
- const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(monthly),'Monthly Summary');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detailed),'UPS Detailed History');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(daily),'Daily Distribution');
+ const openingRows=(d.op||[]).filter(x=>monthOf(x.month_start)>=from&&monthOf(x.month_start)<=to).map(x=>({Month:monthOf(x.month_start),Type:x.ups_type,'As Of Date':x.as_of_date||'','Opening Received':Number(x.received)||0,'Opening Completed':Number(x.completed)||0,Notes:x.notes||''}));
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(monthly),'Monthly Summary');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detailed),'UPS Detailed History');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(daily),'Daily Distribution');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(openingRows),'Go-Live Opening Counts');
  XLSX.writeFile(wb,`Trinergy_History_${from}_to_${to}.xlsx`);showToast('Excel downloaded');
 }
 
+
+
+async function loadOpeningCounts(){
+ const m=$('#openingMonth').value||ym();
+ const r=await sb.from('tqr_month_opening_counts').select('*').eq('month_start',m+'-01');
+ if(r.error)return showToast(r.error.message);
+ const mp=Object.fromEntries((r.data||[]).map(x=>[x.ups_type,x]));
+ const set=(t,p)=>{
+   const x=mp[t]||{};
+   $('#op'+p+'Received').value=Number(x.received||0);
+   $('#op'+p+'Completed').value=Number(x.completed||0);
+ };
+ set('3X','3');set('2X','2');set('STS','s');
+ const any=(r.data||[])[0];
+ $('#openingAsOf').value=any?.as_of_date||new Date().toISOString().slice(0,10);
+ $('#openingNotes').value=any?.notes||'';
+ const d=await loadCore();
+ $('#openingPreview').innerHTML=`<div class="summary-cards">${['3X','2X','STS'].map(t=>{
+   const c=counts(d,t,m);
+   return `<div class="summary-card"><span>${t} MONTH TOTAL AFTER OPENING + LIVE</span><b>R ${c.received} / C ${c.completed}</b><small class="muted">Opening ${c.openingReceived}/${c.openingCompleted} + Live ${c.liveReceived}/${c.liveCompleted}</small></div>`;
+ }).join('')}</div>`;
+}
+async function saveOpeningCounts(){
+ const month_start=($('#openingMonth').value||ym())+'-01';
+ const as_of_date=$('#openingAsOf').value||null;
+ const notes=$('#openingNotes').value.trim();
+ const rows=[
+   ['3X','3'],['2X','2'],['STS','s']
+ ].map(([ups_type,p])=>({
+   month_start,ups_type,as_of_date,
+   received:Number($('#op'+p+'Received').value)||0,
+   completed:Number($('#op'+p+'Completed').value)||0,
+   notes,updated_at:new Date().toISOString()
+ }));
+ if(rows.some(x=>x.completed>x.received))return showToast('Completed Till-Date cannot exceed Received Till-Date');
+ const r=await sb.from('tqr_month_opening_counts').upsert(rows,{onConflict:'month_start,ups_type'});
+ showToast(r.error?r.error.message:'Go-Live opening counts saved');
+ if(!r.error)loadOpeningCounts();
+}
+async function clearOpeningCounts(){
+ const m=$('#openingMonth').value||ym();
+ if(!confirm(`Clear Go-Live opening counts for ${m}?`))return;
+ const r=await sb.from('tqr_month_opening_counts').delete().eq('month_start',m+'-01');
+ showToast(r.error?r.error.message:'Opening counts cleared');
+ if(!r.error)loadOpeningCounts();
+}
 
 async function loadHistorical(){
  const m=$('#histMonth').value||ym(),r=await sb.from('tqr_historical_months').select('*').eq('month_start',m+'-01');
@@ -117,8 +171,8 @@ async function addReason(){const reason_code=$('#reasonCode').value.trim().toUpp
 async function toggleReason(code,active){const r=await sb.from('tqr_gap_reasons').update({active}).eq('reason_code',code);if(r.error)showToast(r.error.message)}
 async function saveReason(code){const r=await sb.from('tqr_gap_reasons').update({reason_text:$('#rt_'+code).value.trim()}).eq('reason_code',code);showToast(r.error?r.error.message:'Reason updated')}
 
-async function loadPane(id){({targets:async()=>{await loadTargets();await loadDailyTargets()},historical:loadHistorical,export:loadExportPane,weekly:loadWeekly,serials:loadSerials,engineers:loadEngineers,bays:loadBays,stages:loadStages,timers:loadTimers,images:loadKpiImages,reasons:loadReasons,history:loadHistory}[id]||(()=>{}))()}
-$('#targetMonth').value=ym();$('#histMonth').value=ym();$('#weekMonth').value=ym();$('#targetMonth').onchange=loadTargets;$('#histMonth').onchange=loadHistorical;$('#weekMonth').onchange=loadWeekly;$('#weekNo').onchange=loadWeekly;
-$('#saveTargets').onclick=saveTargets;$('#saveDailyTargets').onclick=saveDailyTargets;$('#downloadHistoryExcel').onclick=downloadHistoryExcel;$('#saveHistorical').onclick=saveHistorical;$('#saveWeekly').onclick=saveWeekly;$('#importHistorical').onclick=importHistorical;$('#addEngineer').onclick=addEngineer;$('#addBay').onclick=addBay;$('#addStage').onclick=addStage;$('#saveTimers').onclick=saveTimers;$('#saveOldSerial').onclick=saveOldSerial;$('#addReason').onclick=addReason;$('#searchHistory').onclick=loadHistory;
+async function loadPane(id){({targets:async()=>{await loadTargets();await loadDailyTargets()},opening:loadOpeningCounts,historical:loadHistorical,export:loadExportPane,weekly:loadWeekly,serials:loadSerials,engineers:loadEngineers,bays:loadBays,stages:loadStages,timers:loadTimers,images:loadKpiImages,reasons:loadReasons,history:loadHistory}[id]||(()=>{}))()}
+$('#targetMonth').value=ym();$('#openingMonth').value=ym();$('#openingAsOf').value=new Date().toISOString().slice(0,10);$('#histMonth').value=ym();$('#weekMonth').value=ym();$('#targetMonth').onchange=loadTargets;$('#openingMonth').onchange=loadOpeningCounts;$('#histMonth').onchange=loadHistorical;$('#weekMonth').onchange=loadWeekly;$('#weekNo').onchange=loadWeekly;
+$('#saveTargets').onclick=saveTargets;$('#saveDailyTargets').onclick=saveDailyTargets;$('#saveOpeningCounts').onclick=saveOpeningCounts;$('#clearOpeningCounts').onclick=clearOpeningCounts;$('#downloadHistoryExcel').onclick=downloadHistoryExcel;$('#saveHistorical').onclick=saveHistorical;$('#saveWeekly').onclick=saveWeekly;$('#importHistorical').onclick=importHistorical;$('#addEngineer').onclick=addEngineer;$('#addBay').onclick=addBay;$('#addStage').onclick=addStage;$('#saveTimers').onclick=saveTimers;$('#saveOldSerial').onclick=saveOldSerial;$('#addReason').onclick=addReason;$('#searchHistory').onclick=loadHistory;
 Object.assign(window,{saveSerial,toggleEngineer,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage});
 showPane('targets');

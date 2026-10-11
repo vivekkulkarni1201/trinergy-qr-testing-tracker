@@ -224,7 +224,7 @@ async function boot(){
 $('#prevMonth').onclick=()=>shiftMonth(-1); $('#nextMonth').onclick=()=>shiftMonth(1);
 boot().catch(e=>showToast(e.message));
 
-realtimeWatch('dashboard',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history','tqr_monthly_targets'],async()=>{data=await loadCore();savePageCache('dashboard',data);renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()});
+realtimeWatch('dashboard',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history','tqr_monthly_targets','tqr_month_opening_counts'],async()=>{data=await loadCore();savePageCache('dashboard',data);renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()});
 
 let _dashSig='';
 startPolling('dashboard',async()=>{try{

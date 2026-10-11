@@ -3,7 +3,7 @@
 <body><header id="topbar"></header><main>
 <div class="page-title"><div><h1>Admin Control Center</h1><div class="muted">Dashboard remains isolated from Admin changes</div></div></div>
 <div class="admin-tabs">
-<button class="admin-tab active" data-pane="targets">Targets</button>
+<button class="admin-tab active" data-pane="targets">Targets</button><button class="admin-tab" data-pane="opening">Go-Live Till-Date</button>
 <button class="admin-tab" data-pane="historical">Historical Data</button><button class="admin-tab" data-pane="export">Data Export</button><button class="admin-tab" data-pane="weekly">Weekly Targets</button>
 <button class="admin-tab" data-pane="serials">Serial Numbers</button>
 <button class="admin-tab" data-pane="engineers">Engineers</button>
@@ -26,6 +26,28 @@
 <p class="muted">Used in Reports → Daily Planned Receipt. Sunday remains planned 0 for daily input distribution.</p>
 <div class="form-grid"><label>Core Daily Target (3X + 2X)<input id="dailyCoreTarget" type="number" min="0"></label><label>STS Daily Target<input id="dailyStsTarget" type="number" min="0"></label></div>
 <br><button id="saveDailyTargets" class="green">Save Daily Targets</button>
+</div></div>
+<div class="panel admin-pane" id="pane-opening">
+<div class="panel-head"><h2>Go-Live Till-Date Opening Counts</h2><span class="muted">Seed cumulative month numbers before QR tracker starts</span></div>
+<div class="panel-body">
+<div class="info-banner">
+  <b>Use once before Go-Live.</b> Enter the month-to-date Received and Completed quantities already achieved before the tracker starts.
+  New QR transactions will be added automatically on top. These counts affect Monthly KPI / Racing Track / Monthly Summary / Excel export only.
+  Today, Weekly, Active UPS and Bay Monitoring remain based on real UPS records.
+</div>
+<div class="form-grid hist-top" style="margin-top:14px">
+  <label>Month<input id="openingMonth" type="month"></label>
+  <label>Counts valid up to date<input id="openingAsOf" type="date"></label>
+  <label>Notes<input id="openingNotes" placeholder="e.g. Data up to 11-Oct before Go-Live"></label>
+</div>
+<div class="hist-grid" style="margin-top:14px">
+  <div class="admin-tile"><h3>3X</h3><label>Received Till-Date<input id="op3Received" type="number" min="0"></label><label>Completed Till-Date<input id="op3Completed" type="number" min="0"></label></div>
+  <div class="admin-tile"><h3>2X</h3><label>Received Till-Date<input id="op2Received" type="number" min="0"></label><label>Completed Till-Date<input id="op2Completed" type="number" min="0"></label></div>
+  <div class="admin-tile"><h3>STS</h3><label>Received Till-Date<input id="opsReceived" type="number" min="0"></label><label>Completed Till-Date<input id="opsCompleted" type="number" min="0"></label></div>
+</div>
+<br><button id="saveOpeningCounts" class="green">Save Go-Live Opening Counts</button>
+<button id="clearOpeningCounts" class="secondary">Clear This Month Opening Counts</button>
+<div id="openingPreview" style="margin-top:14px"></div>
 </div></div>
 <div class="panel admin-pane" id="pane-historical">
 <div class="panel-head"><h2>Historical / Monthly Data</h2><span class="muted">Past month target, received and completed data</span></div>

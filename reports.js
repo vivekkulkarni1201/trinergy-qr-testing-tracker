@@ -13,8 +13,8 @@ function renderHistory(){
  const y=Number($('#historyYear').value),months=Array.from({length:12},(_,i)=>`${y}-${String(i+1).padStart(2,'0')}`);
  $('#historySummary').innerHTML=months.map(m=>{
    const rows=historical.filter(x=>monthOf(x.month_start)===m),g=Object.fromEntries(rows.map(x=>[x.ups_type,x]));
-   const fmt=t=>{const h=g[t]||{},liveR=data.u.filter(u=>u.ups_type===t&&monthOf(u.received_at)===m).length,liveC=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===m).length,hasLive=data.u.some(u=>u.ups_type===t&&(monthOf(u.received_at)===m||monthOf(u.completed_at)===m)),target=Number(data.t.find(x=>x.ups_type===t&&monthOf(x.month_start)===m)?.target??h.target??0),received=hasLive?liveR:Number(h.received||0),completed=hasLive?liveC:Number(h.completed||0);return `${target}/${received}/${completed}`};
-   const comp=t=>{const h=g[t]||{},liveC=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===m).length,hasLive=data.u.some(u=>u.ups_type===t&&(monthOf(u.received_at)===m||monthOf(u.completed_at)===m));return hasLive?liveC:Number(h.completed||0)};
+   const fmt=t=>{const h=g[t]||{},c=counts(data,t,m),hasTracker=(data.op||[]).some(x=>x.ups_type===t&&monthOf(x.month_start)===m)||data.u.some(u=>u.ups_type===t&&(monthOf(u.received_at)===m||monthOf(u.completed_at)===m)),target=Number(data.t.find(x=>x.ups_type===t&&monthOf(x.month_start)===m)?.target??h.target??0),received=hasTracker?c.received:Number(h.received||0),completed=hasTracker?c.completed:Number(h.completed||0);return `${target}/${received}/${completed}`};
+   const comp=t=>{const h=g[t]||{},c=counts(data,t,m),hasTracker=(data.op||[]).some(x=>x.ups_type===t&&monthOf(x.month_start)===m)||data.u.some(u=>u.ups_type===t&&(monthOf(u.received_at)===m||monthOf(u.completed_at)===m));return hasTracker?c.completed:Number(h.completed||0)};
    const tot=['3X','2X','STS'].reduce((a,t)=>a+comp(t),0);return `<tr><td>${new Date(m+'-01').toLocaleString('en',{month:'short'})}</td><td>${fmt('3X')}</td><td>${fmt('2X')}</td><td>${fmt('STS')}</td><td>${tot}</td><td>${esc(rows[0]?.notes||'')}</td></tr>`
  }).join('')
 }

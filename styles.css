@@ -448,3 +448,10 @@ input,select{background:#061827;color:#fff;border:1px solid #225f83;border-radiu
   .race-finish{right:1px!important;width:34px!important;height:30px!important}
   .race-chequered-flag{width:32px!important;height:25px!important}
 }
+
+
+/* v6.12 live graphics polish */
+.race-car{transition:left .65s cubic-bezier(.22,.8,.25,1)!important;will-change:left}
+.race-progress{transition:width .65s cubic-bezier(.22,.8,.25,1)!important}
+.tank-liquid{transition:height .65s cubic-bezier(.22,.8,.25,1)!important;will-change:height}
+.weekly-neon-progress i{transition:width .65s cubic-bezier(.22,.8,.25,1)!important}

@@ -55,7 +55,7 @@ function renderPerformance(){
     const p=c.target?Math.min(100,Math.round(c.completed/c.target*100)):0;
     const pending=Math.max(0,c.target-c.completed);
     const cls=t==='3X'?'race-blue':t==='2X'?'race-green':'race-purple';
-    const carPos=Math.max(2,Math.min(94,p));
+    const carPos=6+(Math.max(0,Math.min(100,p))*0.86);
     return `<div class="race-row ${cls}">
       <div class="race-type">
         <span class="race-type-name">${t}</span>
@@ -66,7 +66,7 @@ function renderPerformance(){
         <div class="race-track">
           <div class="race-progress" style="width:${p}%"></div>
           <div class="race-dashes"></div>
-          <div class="race-car" style="left:${carPos}%">${racingCarSvg()}</div>
+          <div class="race-car" data-progress="${p}" style="left:${carPos.toFixed(2)}%">${racingCarSvg()}</div>
           <div class="race-finish">
   <svg class="race-chequered-flag" viewBox="0 0 52 38" aria-label="finish flag" role="img">
     <g class="flag-wave">
@@ -129,7 +129,7 @@ async function refreshTimers(){
   }
 }
 
-function calendarWeeks(month){const [y,m]=month.split('-').map(Number),last=new Date(y,m,0).getDate(),w=[];let d=1;while(d<=last){if(new Date(y,m-1,d).getDay()===0){d++;continue}const dow=new Date(y,m-1,d).getDay(),end=Math.min(d+(6-dow),last);w.push({start:d,end});d=end+1;if(d<=last&&new Date(y,m-1,d).getDay()===0)d++}return w}
+function calendarWeeks(month){const [y,m]=month.split('-').map(Number),last=new Date(y,m,0).getDate(),weeks=[];let start=1;while(start<=last){const dow=new Date(y,m-1,start).getDay();const daysToSunday=dow===0?0:7-dow;const end=Math.min(start+daysToSunday,last);weeks.push({start,end});start=end+1}return weeks}
 let selectedWeek=null;
 async function renderWeekly(){
  const month=selectedMonth,weeks=calendarWeeks(month),[y,m]=month.split('-').map(Number),today=new Date(),same=today.getFullYear()===y&&today.getMonth()+1===m;
@@ -142,7 +142,7 @@ async function renderWeekly(){
 
  const wr=await sb.from('tqr_weekly_targets').select('*').eq('month_start',month+'-01');
  const wm=Object.fromEntries((wr.data||[]).map(x=>[`${x.week_no}_${x.ups_type}`,Number(x.target)||0]));
- const workdaysMonth=Array.from({length:new Date(y,m,0).getDate()},(_,i)=>i+1).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
+ const calendarDaysMonth=new Date(y,m,0).getDate();
 
  const monShort=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'short'});
  const dateLabel=w=>`${w.start}–${w.end} ${monShort}`;
@@ -174,11 +174,11 @@ async function renderWeekly(){
    };
  }
 
- const w=weeks[selectedWeek],wd=Array.from({length:w.end-w.start+1},(_,k)=>w.start+k).filter(d=>new Date(y,m-1,d).getDay()!==0).length;
+ const w=weeks[selectedWeek],weekDays=w.end-w.start+1;
 
  const cards=['3X','2X','STS'].map(t=>{
    const c=counts(data,t,month);
-   const target=wm[`${selectedWeek+1}_${t}`]??Math.round(c.target*wd/Math.max(1,workdaysMonth));
+   const target=wm[`${selectedWeek+1}_${t}`]??Math.round(c.target*weekDays/Math.max(1,calendarDaysMonth));
    const actual=data.u.filter(u=>u.ups_type===t&&u.status==='COMPLETED'&&monthOf(u.completed_at)===month&&Number(u.completed_at.slice(8,10))>=w.start&&Number(u.completed_at.slice(8,10))<=w.end).length;
    const pending=Math.max(0,target-actual),pct=target?Math.round(actual/target*100):(actual?100:0),fill=Math.min(100,pct),cls=t==='3X'?'blue':t==='2X'?'green':'purple';
 

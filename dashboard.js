@@ -67,7 +67,21 @@ function renderPerformance(){
           <div class="race-progress" style="width:${p}%"></div>
           <div class="race-dashes"></div>
           <div class="race-car" style="left:${carPos}%">${racingCarSvg()}</div>
-          <div class="race-finish"><div class="race-wave-flag" aria-label="finish flag"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+          <div class="race-finish">
+  <svg class="race-chequered-flag" viewBox="0 0 52 38" aria-label="finish flag" role="img">
+    <g class="flag-wave">
+      <path class="flag-bg" d="M7 5 C17 1, 27 9, 43 4 L43 25 C29 29, 20 20, 7 25 Z"/>
+      <g class="flag-checks">
+        <path d="M8 5.5 L16.5 4.1 L16.5 11.6 L8 12.7 Z"/>
+        <path d="M25 4.8 L33.5 5.4 L33.5 13 L25 12.1 Z"/>
+        <path d="M16.5 11.6 L25 12.1 L25 19.4 L16.5 18.7 Z"/>
+        <path d="M33.5 13 L42 11.9 L42 19.1 L33.5 20 Z"/>
+        <path d="M8 19.5 L16.5 18.7 L16.5 25.3 L8 25.2 Z"/>
+        <path d="M25 19.4 L33.5 20 L33.5 27.1 L25 25.8 Z"/>
+      </g>
+    </g>
+  </svg>
+</div>
         </div>
       </div>
       <div class="race-percent">

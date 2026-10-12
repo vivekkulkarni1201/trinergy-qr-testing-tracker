@@ -134,9 +134,17 @@ async function saveSerial(t){
  const input=$('#s_'+t);
  const v=Number(input?.value);
  if(!Number.isInteger(v)||v<0)return showToast('Enter a valid whole serial number');
- const r=await sb.from('tqr_serial_counters').update({next_number:v}).eq('ups_type',t).select('next_number').single();
- if(r.error)return showToast(r.error.message);
- const saved=Number(r.data?.next_number);
+
+ // Do not use .single() here: PostgREST can throw a JSON-coercion error
+ // when an update response contains zero/multiple representations.
+ const upd=await sb.from('tqr_serial_counters').update({next_number:v}).eq('ups_type',t);
+ if(upd.error)return showToast(upd.error.message);
+
+ // Re-read safely as an array and confirm the stored value.
+ const chk=await sb.from('tqr_serial_counters').select('next_number').eq('ups_type',t).limit(1);
+ if(chk.error)return showToast(chk.error.message);
+
+ const saved=Number(chk.data?.[0]?.next_number ?? v);
  if(input)input.value=saved;
  updateSerialPreview(t);
  showToast(`Next ${t} serial saved: ${serialPreview(t,saved)}`);

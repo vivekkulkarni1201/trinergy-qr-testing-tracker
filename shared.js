@@ -151,40 +151,141 @@ function coreBayFreeSlot(data,bayId){
 function coreBayHasCapacity(data,bayId){return !!coreBayFreeSlot(data,bayId)}
 function coreBayLabel(section){return section==='SLOT1'?'Slot 1':section==='SLOT2'?'Slot 2':section}
 
-// PWA registration / install support
+// PWA registration / install support — v6.14.4
 let deferredPwaInstallPrompt=null;
+let pwaInstallState='checking';
+
+function isStandalonePwa(){
+  return window.matchMedia?.('(display-mode: standalone)').matches ||
+         window.navigator.standalone===true ||
+         document.referrer.startsWith('android-app://');
+}
+function isEmbeddedBrowser(){
+  const ua=navigator.userAgent||'';
+  return /Teams|FBAN|FBAV|Instagram|Line\/|wv\)|; wv|WebView/i.test(ua);
+}
+function pwaInstallButton(){
+  return document.querySelector('.pwa-install-btn');
+}
+function setPwaButton(label,hidden=false){
+  const b=pwaInstallButton();
+  if(!b)return;
+  b.textContent=label;
+  b.classList.toggle('hidden',!!hidden);
+}
+function siteUrl(){
+  return `${location.origin}${location.pathname.replace(/[^/]*$/,'')}`;
+}
+
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./service-worker.js',{scope:'./',updateViaCache:'none'});
+      await reg.update().catch(()=>{});
+      pwaInstallState=isStandalonePwa()?'installed':'ready';
+      if(isStandalonePwa()) setPwaButton('Installed',true);
+    }catch(err){
+      pwaInstallState='sw-error';
+      console.warn('PWA service worker registration failed',err);
+    }
   });
 }
+
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   deferredPwaInstallPrompt=e;
+  pwaInstallState='installable';
   document.documentElement.classList.add('pwa-install-available');
+  setPwaButton('Install App');
 });
+
 window.addEventListener('appinstalled',()=>{
   deferredPwaInstallPrompt=null;
+  pwaInstallState='installed';
   document.documentElement.classList.remove('pwa-install-available');
+  setPwaButton('Installed',true);
+  showToast('Trinergy app installed successfully');
 });
+
+function closePwaInstallModal(){
+  document.querySelector('.pwa-install-modal')?.remove();
+}
+function copyTrackerLink(){
+  const url=location.href.split('?')[0].split('#')[0];
+  navigator.clipboard?.writeText(url).then(()=>showToast('Tracker link copied')).catch(()=>{});
+}
+function downloadDesktopShortcut(){
+  const root=siteUrl();
+  const text=`[InternetShortcut]\r\nURL=${root}\r\nIconFile=${root}favicon.ico\r\nIconIndex=0\r\n`;
+  const blob=new Blob([text],{type:'application/internet-shortcut'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Trinergy QR Testing Tracker.url';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  showToast('Desktop shortcut downloaded — open it or move it to Desktop');
+}
+function showPwaInstallHelp(){
+  closePwaInstallModal();
+  const embedded=isEmbeddedBrowser();
+  const modal=document.createElement('div');
+  modal.className='pwa-install-modal';
+  modal.innerHTML=`<div class="pwa-install-card">
+    <button class="pwa-modal-close" aria-label="Close">×</button>
+    <div class="pwa-install-icon"><img src="icon-192.png" alt=""></div>
+    <h2>Install Trinergy QR Tracker</h2>
+    ${embedded?`<div class="pwa-alert"><b>Open this page in Chrome or Microsoft Edge first.</b><br>This page is currently inside an embedded browser, which does not offer PWA installation.</div>`:''}
+    <div class="pwa-install-steps">
+      <div><b>Chrome / Windows</b><span>⋮ → Cast, save and share → <strong>Install Trinergy QR Testing Tracker</strong></span></div>
+      <div><b>Microsoft Edge</b><span>⋯ → Apps → <strong>Install this site as an app</strong></span></div>
+      <div><b>Desktop shortcut</b><span>If your browser still hides Install, download the shortcut below and keep it on Desktop.</span></div>
+    </div>
+    <div class="pwa-modal-actions">
+      <button class="green" id="pwaShortcutBtn">Download Desktop Shortcut</button>
+      <button class="secondary" id="pwaCopyBtn">Copy Website Link</button>
+    </div>
+    <small class="muted">For the full standalone app experience, Chrome/Edge installation is preferred.</small>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('.pwa-modal-close').onclick=closePwaInstallModal;
+  modal.onclick=e=>{if(e.target===modal)closePwaInstallModal()};
+  modal.querySelector('#pwaShortcutBtn').onclick=downloadDesktopShortcut;
+  modal.querySelector('#pwaCopyBtn').onclick=copyTrackerLink;
+}
+
 async function installTrinergyPwa(){
-  if(deferredPwaInstallPrompt){
-    deferredPwaInstallPrompt.prompt();
-    await deferredPwaInstallPrompt.userChoice;
-    deferredPwaInstallPrompt=null;
-    document.documentElement.classList.remove('pwa-install-available');
+  if(isStandalonePwa()){
+    showToast('Trinergy app is already installed');
     return;
   }
-  showToast('Use browser menu → Add to Home screen / Install app');
+  if(deferredPwaInstallPrompt){
+    try{
+      deferredPwaInstallPrompt.prompt();
+      const choice=await deferredPwaInstallPrompt.userChoice;
+      if(choice?.outcome==='accepted'){
+        setPwaButton('Installing…');
+      }else{
+        showPwaInstallHelp();
+      }
+    }catch{
+      showPwaInstallHelp();
+    }finally{
+      deferredPwaInstallPrompt=null;
+    }
+    return;
+  }
+  showPwaInstallHelp();
 }
 window.installTrinergyPwa=installTrinergyPwa;
 
 function addPwaInstallButton(){
  const bar=document.querySelector('#topbar');
- if(!bar||bar.querySelector('.pwa-install-btn'))return;
+ if(!bar||bar.querySelector('.pwa-install-btn')||isStandalonePwa())return;
  const btn=document.createElement('button');
  btn.className='pwa-install-btn';
+ btn.type='button';
  btn.textContent='Install App';
+ btn.title='Install Trinergy QR Tracker on this device';
  btn.onclick=installTrinergyPwa;
  bar.appendChild(btn);
 }

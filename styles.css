@@ -487,3 +487,73 @@ input,select{background:#061827;color:#fff;border:1px solid #225f83;border-radiu
 }
 .info-banner b{color:#5ee7ff}
 #openingPreview .summary-card small{display:block;margin-top:5px;font-size:10px}
+
+
+/* v6.14.4 robust desktop/mobile PWA installer */
+.pwa-install-btn{
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+}
+.pwa-install-modal{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(0,8,15,.76);
+  backdrop-filter:blur(7px);
+}
+.pwa-install-card{
+  position:relative;
+  width:min(560px,96vw);
+  border:1px solid #25cfff;
+  border-radius:18px;
+  padding:22px;
+  background:linear-gradient(145deg,#092a43,#051521);
+  box-shadow:0 0 35px rgba(30,207,255,.25),inset 0 0 22px rgba(30,207,255,.06);
+}
+.pwa-modal-close{
+  position:absolute!important;
+  right:12px!important;
+  top:10px!important;
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  padding:0!important;
+  border-radius:50%!important;
+  font-size:21px!important;
+}
+.pwa-install-icon{
+  width:70px;height:70px;border-radius:16px;overflow:hidden;
+  border:1px solid #31d8ff;box-shadow:0 0 18px rgba(49,216,255,.3);
+}
+.pwa-install-icon img{width:100%;height:100%;object-fit:cover}
+.pwa-install-card h2{margin:13px 0 12px}
+.pwa-alert{
+  margin:10px 0 14px;
+  padding:11px 12px;
+  border:1px solid #f0ae2f;
+  border-radius:10px;
+  background:#30230a;
+  color:#ffe4a3;
+  line-height:1.45;
+}
+.pwa-install-steps{display:grid;gap:9px;margin:12px 0 16px}
+.pwa-install-steps>div{
+  display:grid;
+  grid-template-columns:145px 1fr;
+  gap:10px;
+  padding:10px 11px;
+  border:1px solid #1b5c7f;
+  border-radius:11px;
+  background:#061b2b;
+}
+.pwa-install-steps b{color:#54ddff}
+.pwa-install-steps span{color:#d8edf8;line-height:1.4}
+.pwa-modal-actions{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+@media(max-width:600px){
+  .pwa-install-card{padding:18px 14px}
+  .pwa-install-steps>div{grid-template-columns:1fr;gap:4px}
+  .pwa-modal-actions button{width:100%}
+}

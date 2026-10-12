@@ -5,6 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
+const TQR_APP_VERSION = 'v6.14.6';
 
 function showToast(msg){
   const t = $('#toast');
@@ -14,6 +15,27 @@ function showToast(msg){
   clearTimeout(t._to);
   t._to = setTimeout(()=>t.classList.remove('show'), 2800);
 }
+
+function mountVersionBadge(){
+  const top=$('#topbar');
+  if(!top||top.querySelector('.app-version-badge'))return;
+  const b=document.createElement('span');
+  b.className='app-version-badge';
+  b.textContent=TQR_APP_VERSION;
+  b.title='Trinergy QR Tracker version';
+  top.appendChild(b);
+}
+function showUpdateNotice(){
+  let n=document.querySelector('.app-update-notice');
+  if(!n){
+    n=document.createElement('div');
+    n.className='app-update-notice';
+    document.body.appendChild(n);
+  }
+  n.innerHTML=`<b>New tracker version available</b><span>Updating to ${TQR_APP_VERSION}…</span>`;
+  requestAnimationFrame(()=>n.classList.add('show'));
+}
+
 function navHtml(active){
   const items = [
     ['dashboard','index.html','⌂','Dashboard'],
@@ -39,7 +61,7 @@ function mountTopbar(active){
     if(date) date.textContent = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
     if(time) time.textContent = d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   };
-  tick(); setInterval(tick,1000);
+  tick(); setInterval(tick,1000); mountVersionBadge();
 }
 async function table(name, select='*'){
   const r = await sb.from(name).select(select);
@@ -101,7 +123,7 @@ function directScan(qr){ location.href = `scan.html?qr=${encodeURIComponent(qr)}
 
 function mountScanHeader(){
   const e=$('#topbar'); if(!e)return;
-  e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`;
+  e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`; mountVersionBadge();
 }
 let _rtTimers={};
 function realtimeWatch(name,tables,callback,delay=180){
@@ -178,16 +200,62 @@ function siteUrl(){
 }
 
 if('serviceWorker' in navigator){
+  let pwaRegistration=null;
+  let pwaReloading=false;
+
+  const activateWaitingWorker=reg=>{
+    if(reg?.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+  };
+
+  const wireAutoUpdate=reg=>{
+    activateWaitingWorker(reg);
+
+    reg.addEventListener('updatefound',()=>{
+      const worker=reg.installing;
+      if(!worker)return;
+      worker.addEventListener('statechange',()=>{
+        if(worker.state==='installed' && navigator.serviceWorker.controller){
+          worker.postMessage({type:'SKIP_WAITING'});
+        }
+      });
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(pwaReloading)return;
+      pwaReloading=true;
+      const key='trinergy-auto-update-reload';
+      if(sessionStorage.getItem(key)!=='1'){
+        sessionStorage.setItem(key,'1');
+        showUpdateNotice();
+        setTimeout(()=>location.reload(),1100);
+      }else{
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
+  const checkPwaUpdate=()=>pwaRegistration?.update().then(()=>activateWaitingWorker(pwaRegistration)).catch(()=>{});
+
   window.addEventListener('load',async()=>{
     try{
       const reg=await navigator.serviceWorker.register('./service-worker.js',{scope:'./',updateViaCache:'none'});
-      await reg.update().catch(()=>{});
+      pwaRegistration=reg;
+      wireAutoUpdate(reg);
+      await checkPwaUpdate();
       pwaInstallState=isStandalonePwa()?'installed':'ready';
       if(isStandalonePwa()) setPwaButton('Installed',true);
+
+      // Keep long-running laptop / PWA sessions fresh during factory use.
+      setInterval(checkPwaUpdate,5*60*1000);
     }catch(err){
       pwaInstallState='sw-error';
       console.warn('PWA service worker registration failed',err);
     }
+  });
+
+  // When user returns to an old open PWA/tab, immediately check GitHub for a newer build.
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible') checkPwaUpdate();
   });
 }
 
@@ -290,3 +358,5 @@ function addPwaInstallButton(){
  bar.appendChild(btn);
 }
 window.addEventListener('load',()=>setTimeout(addPwaInstallButton,250));
+
+window.addEventListener('load',()=>setTimeout(mountVersionBadge,350));

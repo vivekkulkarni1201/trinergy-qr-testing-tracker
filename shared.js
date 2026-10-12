@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.6';
+const TQR_APP_VERSION = 'v6.14.7';
 
 function showToast(msg){
   const t = $('#toast');
@@ -246,16 +246,22 @@ if('serviceWorker' in navigator){
       if(isStandalonePwa()) setPwaButton('Installed',true);
 
       // Keep long-running laptop / PWA sessions fresh during factory use.
-      setInterval(checkPwaUpdate,5*60*1000);
+      setInterval(checkPwaUpdate,30*60*1000);
     }catch(err){
       pwaInstallState='sw-error';
       console.warn('PWA service worker registration failed',err);
     }
   });
 
-  // When user returns to an old open PWA/tab, immediately check GitHub for a newer build.
+  // iPhone-friendly: check on return only when the app was away for 5+ minutes.
+  let pwaHiddenAt=0;
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible') checkPwaUpdate();
+    if(document.visibilityState==='hidden'){
+      pwaHiddenAt=Date.now();
+    }else if(pwaHiddenAt && Date.now()-pwaHiddenAt>5*60*1000){
+      checkPwaUpdate();
+      pwaHiddenAt=0;
+    }
   });
 }
 

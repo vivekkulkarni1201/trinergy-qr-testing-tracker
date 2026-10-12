@@ -238,11 +238,48 @@ async function boot(){
 $('#prevMonth').onclick=()=>shiftMonth(-1); $('#nextMonth').onclick=()=>shiftMonth(1);
 boot().catch(e=>showToast(e.message));
 
-realtimeWatch('dashboard',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history','tqr_monthly_targets','tqr_month_opening_counts'],async()=>{data=await loadCore();savePageCache('dashboard',data);renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()});
+async function loadDashboardDynamic(){
+  const [u,o,st]=await Promise.all([
+    table('tqr_units'),
+    table('tqr_bay_occupancy'),
+    table('tqr_stage_state')
+  ]);
+  const sm=Object.fromEntries(st.map(x=>[x.unit_id,x]));
+  u.forEach(x=>x.tqr_stage_state=sm[x.id]||null);
+  return {...data,u,o:o.filter(x=>!x.released_at),st};
+}
+async function refreshDashboardDynamic(){
+  const fresh=await loadDashboardDynamic();
+  data=fresh;
+  savePageCache('dashboard',data);
+  renderKpis();
+  renderPerformance();
+  renderToday();
+  await renderBays();
+  await renderWeekly();
+}
+
+// Fast path for normal factory activity: only 3 live tables are fetched.
+realtimeWatch('dashboard-fast',['tqr_units','tqr_stage_state','tqr_bay_occupancy'],refreshDashboardDynamic,60);
+
+// Slow/static changes (targets, bay master, opening counts) still perform a full reload.
+realtimeWatch('dashboard-static',['tqr_monthly_targets','tqr_month_opening_counts','tqr_bays'],async()=>{
+  data=await loadCore();
+  savePageCache('dashboard',data);
+  renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly();
+},120);
 
 let _dashSig='';
 startPolling('dashboard',async()=>{try{
-  const fresh=await loadCore();
-  const sig=JSON.stringify([fresh.u.map(x=>[x.id,x.status,x.current_stage,x.completed_at,x.stock_at,x.parked,x.faulted]),fresh.o.map(x=>[x.bay_id,x.section,x.unit_id]),fresh.st.map(x=>[x.unit_id,x.core_heatrun_started,x.core_heatrun_passed,x.booster_1_started,x.booster_1_passed,x.booster_2_started,x.booster_2_passed,x.booster_3_started,x.booster_3_passed])]);
-  if(sig!==_dashSig){_dashSig=sig;data=fresh;renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()}
+  const fresh=await loadDashboardDynamic();
+  const sig=JSON.stringify([
+    fresh.u.map(x=>[x.id,x.status,x.current_stage,x.received_at,x.completed_at,x.stock_at,x.parked,x.faulted]),
+    fresh.o.map(x=>[x.bay_id,x.section,x.unit_id]),
+    fresh.st.map(x=>[x.unit_id,x.core_heatrun_started,x.core_heatrun_passed,x.booster_1_started,x.booster_1_passed,x.booster_2_started,x.booster_2_passed,x.booster_3_started,x.booster_3_passed])
+  ]);
+  if(sig!==_dashSig){
+    _dashSig=sig;
+    data=fresh;
+    renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly();
+  }
 }catch(e){}},5000);

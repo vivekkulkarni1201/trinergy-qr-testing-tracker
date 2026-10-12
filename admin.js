@@ -117,8 +117,30 @@ async function saveHistorical(){
  const r=await sb.from('tqr_historical_months').upsert(rows,{onConflict:'month_start,ups_type'});showToast(r.error?r.error.message:'Historical month saved');if(!r.error)loadHistorical();
 }
 
-async function loadSerials(){const d=await table('tqr_serial_counters');$('#serials').innerHTML=d.map(x=>`<div class="admin-tile"><h3>${x.ups_type}</h3><label>Next Serial<input id="s_${x.ups_type}" type="number" value="${x.next_number}"></label><p class="muted">Next preview: ${x.ups_type==='3X'?'T3X':x.ups_type==='2X'?'T2X':'TST'}${String(x.next_number).padStart(4,'0')}</p><button onclick="saveSerial('${x.ups_type}')">Save</button></div>`).join('')}
-async function saveSerial(t){const v=Number($('#s_'+t).value);const r=await sb.from('tqr_serial_counters').update({next_number:v}).eq('ups_type',t);showToast(r.error?r.error.message:'Serial counter saved')}
+function serialPrefix(t){return t==='3X'?'T3X':t==='2X'?'T2X':'TST'}
+function serialPreview(t,v){
+ const n=Math.max(0,Math.trunc(Number(v)||0));
+ return `${serialPrefix(t)}${String(n).padStart(4,'0')}`;
+}
+function updateSerialPreview(t){
+ const input=$('#s_'+t),preview=$('#sp_'+t);
+ if(input&&preview)preview.textContent='Next preview: '+serialPreview(t,input.value);
+}
+async function loadSerials(){
+ const d=await table('tqr_serial_counters');
+ $('#serials').innerHTML=d.map(x=>`<div class="admin-tile"><h3>${x.ups_type}</h3><label>Next Serial<input id="s_${x.ups_type}" type="number" min="0" step="1" value="${x.next_number}" oninput="updateSerialPreview('${x.ups_type}')"></label><p class="muted" id="sp_${x.ups_type}">Next preview: ${serialPreview(x.ups_type,x.next_number)}</p><button onclick="saveSerial('${x.ups_type}')">Save</button></div>`).join('')
+}
+async function saveSerial(t){
+ const input=$('#s_'+t);
+ const v=Number(input?.value);
+ if(!Number.isInteger(v)||v<0)return showToast('Enter a valid whole serial number');
+ const r=await sb.from('tqr_serial_counters').update({next_number:v}).eq('ups_type',t).select('next_number').single();
+ if(r.error)return showToast(r.error.message);
+ const saved=Number(r.data?.next_number);
+ if(input)input.value=saved;
+ updateSerialPreview(t);
+ showToast(`Next ${t} serial saved: ${serialPreview(t,saved)}`);
+}
 
 function toggleHtml(id,on,fn){return `<label class="switch"><input type="checkbox" ${on?'checked':''} onchange="${fn}('${id}',this.checked)"><span class="slider"></span></label>`}
 async function loadEngineers(){const d=await table('tqr_engineers');$('#engineerTable').innerHTML=d.map(e=>`<tr><td>${esc(e.engineer_name)}</td><td>${esc(e.employee_id||'—')}</td><td>${toggleHtml(e.id,e.active,'toggleEngineer')}</td></tr>`).join('')}
@@ -174,5 +196,5 @@ async function saveReason(code){const r=await sb.from('tqr_gap_reasons').update(
 async function loadPane(id){({targets:async()=>{await loadTargets();await loadDailyTargets()},opening:loadOpeningCounts,historical:loadHistorical,export:loadExportPane,weekly:loadWeekly,serials:loadSerials,engineers:loadEngineers,bays:loadBays,stages:loadStages,timers:loadTimers,images:loadKpiImages,reasons:loadReasons,history:loadHistory}[id]||(()=>{}))()}
 $('#targetMonth').value=ym();$('#openingMonth').value=ym();$('#openingAsOf').value=new Date().toISOString().slice(0,10);$('#histMonth').value=ym();$('#weekMonth').value=ym();$('#targetMonth').onchange=loadTargets;$('#openingMonth').onchange=loadOpeningCounts;$('#histMonth').onchange=loadHistorical;$('#weekMonth').onchange=loadWeekly;$('#weekNo').onchange=loadWeekly;
 $('#saveTargets').onclick=saveTargets;$('#saveDailyTargets').onclick=saveDailyTargets;$('#saveOpeningCounts').onclick=saveOpeningCounts;$('#clearOpeningCounts').onclick=clearOpeningCounts;$('#downloadHistoryExcel').onclick=downloadHistoryExcel;$('#saveHistorical').onclick=saveHistorical;$('#saveWeekly').onclick=saveWeekly;$('#importHistorical').onclick=importHistorical;$('#addEngineer').onclick=addEngineer;$('#addBay').onclick=addBay;$('#addStage').onclick=addStage;$('#saveTimers').onclick=saveTimers;$('#saveOldSerial').onclick=saveOldSerial;$('#addReason').onclick=addReason;$('#searchHistory').onclick=loadHistory;
-Object.assign(window,{saveSerial,toggleEngineer,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage});
+Object.assign(window,{saveSerial,updateSerialPreview,toggleEngineer,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage});
 showPane('targets');

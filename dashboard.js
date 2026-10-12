@@ -92,9 +92,23 @@ function renderPerformance(){
     </div>`;
   }).join('')}</div>`;
 }
+function localDayKey(value){
+ const d=value instanceof Date?value:new Date(value);
+ if(Number.isNaN(d.getTime()))return '';
+ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+ return `${y}-${m}-${day}`;
+}
 function renderToday(){
- const d=new Date(),day=d.toISOString().slice(0,10);$('#todayDate').textContent=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
- $('#todayBody').innerHTML=['3X','2X','STS'].map(t=>{const rec=data.u.filter(x=>x.ups_type===t&&x.received_at?.slice(0,10)===day).length,comp=data.u.filter(x=>x.ups_type===t&&x.completed_at?.slice(0,10)===day).length,under=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING').length,heat=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING'&&runningTimedEvent(x)).length,stock=data.u.filter(x=>x.ups_type===t&&x.status==='STOCK').length;return `<tr><th>${t}</th><td class="r">${rec}</td><td class="c">${comp}</td><td class="u">${under}</td><td class="h">${heat}</td><td class="s">${stock}</td></tr>`}).join('');
+ const now=new Date(),today=localDayKey(now);
+ $('#todayDate').textContent=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+ $('#todayBody').innerHTML=['3X','2X','STS'].map(t=>{
+   const rec=data.u.filter(x=>x.ups_type===t&&localDayKey(x.received_at)===today).length;
+   const comp=data.u.filter(x=>x.ups_type===t&&localDayKey(x.completed_at)===today).length;
+   const under=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING').length;
+   const heat=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING'&&runningTimedEvent(x)).length;
+   const stock=data.u.filter(x=>x.ups_type===t&&x.status==='STOCK').length;
+   return `<tr><th>${t}</th><td class="r">${rec}</td><td class="c">${comp}</td><td class="u">${under}</td><td class="h">${heat}</td><td class="s">${stock}</td></tr>`;
+ }).join('');
 }
 async function timerText(u){
   const s=stateOf(u); if(!s) return '';

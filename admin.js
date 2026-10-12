@@ -135,16 +135,23 @@ async function saveSerial(t){
  const v=Number(input?.value);
  if(!Number.isInteger(v)||v<0)return showToast('Enter a valid whole serial number');
 
- // Do not use .single() here: PostgREST can throw a JSON-coercion error
- // when an update response contains zero/multiple representations.
- const upd=await sb.from('tqr_serial_counters').update({next_number:v}).eq('ups_type',t);
+ // Ask PostgREST to return the rows actually updated.
+ // If RLS blocks UPDATE, data will be [] and we show a real error instead of false success.
+ const upd=await sb.from('tqr_serial_counters')
+   .update({next_number:v})
+   .eq('ups_type',t)
+   .select('ups_type,next_number');
+
  if(upd.error)return showToast(upd.error.message);
+ if(!Array.isArray(upd.data)||upd.data.length===0){
+   return showToast('Serial was NOT saved — database UPDATE permission is blocked. Run v6.14.10 SQL.');
+ }
 
- // Re-read safely as an array and confirm the stored value.
- const chk=await sb.from('tqr_serial_counters').select('next_number').eq('ups_type',t).limit(1);
- if(chk.error)return showToast(chk.error.message);
+ const saved=Number(upd.data[0].next_number);
+ if(saved!==v){
+   return showToast(`Serial save mismatch: requested ${v}, database returned ${saved}`);
+ }
 
- const saved=Number(chk.data?.[0]?.next_number ?? v);
  if(input)input.value=saved;
  updateSerialPreview(t);
  showToast(`Next ${t} serial saved: ${serialPreview(t,saved)}`);

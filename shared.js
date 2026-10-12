@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.9';
+const TQR_APP_VERSION = 'v6.14.10';
 
 function showToast(msg){
   const t = $('#toast');

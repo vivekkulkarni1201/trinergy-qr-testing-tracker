@@ -101,7 +101,32 @@ async function clearOpeningCounts(){
  if(!r.error)loadOpeningCounts();
 }
 
+
+function syncHistoricalMonth(){
+ const y=$('#histYear')?.value,m=$('#histMonthNo')?.value;
+ if(y&&m&&$('#histMonth'))$('#histMonth').value=`${y}-${m}`;
+}
+function setHistoricalPicker(value){
+ const v=(value||ym()).slice(0,7),[y,m]=v.split('-');
+ if($('#histYear'))$('#histYear').value=y;
+ if($('#histMonthNo'))$('#histMonthNo').value=m;
+ syncHistoricalMonth();
+}
+function initHistoricalPicker(){
+ const yearSel=$('#histYear'),monthSel=$('#histMonthNo');
+ if(!yearSel||!monthSel)return;
+ const currentYear=new Date().getFullYear();
+ yearSel.innerHTML='';
+ for(let y=2024;y<=currentYear+1;y++){
+   yearSel.insertAdjacentHTML('beforeend',`<option value="${y}">${y}</option>`);
+ }
+ setHistoricalPicker(ym());
+ yearSel.onchange=()=>{syncHistoricalMonth();loadHistorical()};
+ monthSel.onchange=()=>{syncHistoricalMonth();loadHistorical()};
+}
+
 async function loadHistorical(){
+ syncHistoricalMonth();
  const m=$('#histMonth').value||ym(),r=await sb.from('tqr_historical_months').select('*').eq('month_start',m+'-01');
  if(r.error)return showToast(r.error.message);
  const mp=Object.fromEntries((r.data||[]).map(x=>[x.ups_type,x]));
@@ -112,6 +137,7 @@ async function loadHistorical(){
  $('#historicalList').innerHTML=`<table class="table"><thead><tr><th>Month</th><th>3X T/R/C</th><th>2X T/R/C</th><th>STS T/R/C</th><th>Notes</th></tr></thead><tbody>${Object.entries(groups).map(([m,rows])=>{const g=Object.fromEntries(rows.map(x=>[x.ups_type,x])),fmt=t=>{const x=g[t]||{};return `${x.target||0} / ${x.received||0} / ${x.completed||0}`};return `<tr><td>${m.slice(0,7)}</td><td>${fmt('3X')}</td><td>${fmt('2X')}</td><td>${fmt('STS')}</td><td>${esc(rows[0]?.notes||'')}</td></tr>`}).join('')}</tbody></table>`;
 }
 async function saveHistorical(){
+ syncHistoricalMonth();
  const month_start=$('#histMonth').value+'-01',notes=$('#histNotes').value.trim();
  const rows=[['3X','3'],['2X','2'],['STS','s']].map(([ups_type,p])=>({month_start,ups_type,target:Number($('#h'+p+'Target').value)||0,received:Number($('#h'+p+'Received').value)||0,completed:Number($('#h'+p+'Completed').value)||0,notes}));
  const r=await sb.from('tqr_historical_months').upsert(rows,{onConflict:'month_start,ups_type'});showToast(r.error?r.error.message:'Historical month saved');if(!r.error)loadHistorical();
@@ -209,7 +235,7 @@ async function toggleReason(code,active){const r=await sb.from('tqr_gap_reasons'
 async function saveReason(code){const r=await sb.from('tqr_gap_reasons').update({reason_text:$('#rt_'+code).value.trim()}).eq('reason_code',code);showToast(r.error?r.error.message:'Reason updated')}
 
 async function loadPane(id){({targets:async()=>{await loadTargets();await loadDailyTargets()},opening:loadOpeningCounts,historical:loadHistorical,export:loadExportPane,weekly:loadWeekly,serials:loadSerials,engineers:loadEngineers,bays:loadBays,stages:loadStages,timers:loadTimers,images:loadKpiImages,reasons:loadReasons,history:loadHistory}[id]||(()=>{}))()}
-$('#targetMonth').value=ym();$('#openingMonth').value=ym();$('#openingAsOf').value=new Date().toISOString().slice(0,10);$('#histMonth').value=ym();$('#weekMonth').value=ym();$('#targetMonth').onchange=loadTargets;$('#openingMonth').onchange=loadOpeningCounts;$('#histMonth').onchange=loadHistorical;$('#weekMonth').onchange=loadWeekly;$('#weekNo').onchange=loadWeekly;
+$('#targetMonth').value=ym();$('#openingMonth').value=ym();$('#openingAsOf').value=new Date().toISOString().slice(0,10);initHistoricalPicker();$('#weekMonth').value=ym();$('#targetMonth').onchange=loadTargets;$('#openingMonth').onchange=loadOpeningCounts;$('#weekMonth').onchange=loadWeekly;$('#weekNo').onchange=loadWeekly;
 $('#saveTargets').onclick=saveTargets;$('#saveDailyTargets').onclick=saveDailyTargets;$('#saveOpeningCounts').onclick=saveOpeningCounts;$('#clearOpeningCounts').onclick=clearOpeningCounts;$('#downloadHistoryExcel').onclick=downloadHistoryExcel;$('#saveHistorical').onclick=saveHistorical;$('#saveWeekly').onclick=saveWeekly;$('#importHistorical').onclick=importHistorical;$('#addEngineer').onclick=addEngineer;$('#addBay').onclick=addBay;$('#addStage').onclick=addStage;$('#saveTimers').onclick=saveTimers;$('#saveOldSerial').onclick=saveOldSerial;$('#addReason').onclick=addReason;$('#searchHistory').onclick=loadHistory;
 Object.assign(window,{saveSerial,updateSerialPreview,toggleEngineer,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage});
 showPane('targets');

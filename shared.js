@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.10';
+const TQR_APP_VERSION = 'v6.14.11';
 
 function showToast(msg){
   const t = $('#toast');
@@ -246,23 +246,18 @@ if('serviceWorker' in navigator){
       if(isStandalonePwa()) setPwaButton('Installed',true);
 
       // Keep long-running laptop / PWA sessions fresh during factory use.
-      setInterval(checkPwaUpdate,30*60*1000);
+      setInterval(checkPwaUpdate,15*1000);
     }catch(err){
       pwaInstallState='sw-error';
       console.warn('PWA service worker registration failed',err);
     }
   });
 
-  // iPhone-friendly: check on return only when the app was away for 5+ minutes.
-  let pwaHiddenAt=0;
+  // Always check immediately when a user returns to an open app/tab.
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='hidden'){
-      pwaHiddenAt=Date.now();
-    }else if(pwaHiddenAt && Date.now()-pwaHiddenAt>5*60*1000){
-      checkPwaUpdate();
-      pwaHiddenAt=0;
-    }
+    if(document.visibilityState==='visible') checkPwaUpdate();
   });
+  window.addEventListener('focus',checkPwaUpdate);
 }
 
 window.addEventListener('beforeinstallprompt',e=>{
@@ -364,5 +359,36 @@ function addPwaInstallButton(){
  bar.appendChild(btn);
 }
 window.addEventListener('load',()=>setTimeout(addPwaInstallButton,250));
+
+async function checkPublishedAppVersion(){
+ try{
+   const r=await fetch(`./version.json?_=${Date.now()}`,{cache:'no-store'});
+   if(!r.ok)return;
+   const j=await r.json();
+   const latest=String(j.version||'').trim();
+   if(!latest||latest===TQR_APP_VERSION)return;
+   const key='trinergy-pending-version';
+   if(sessionStorage.getItem(key)===latest)return;
+   sessionStorage.setItem(key,latest);
+   showUpdateNotice();
+   try{
+     const reg=await navigator.serviceWorker?.getRegistration('./');
+     if(reg){
+       await reg.update().catch(()=>{});
+       if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+     }
+   }catch(e){}
+   setTimeout(()=>location.reload(),700);
+ }catch(e){}
+}
+window.addEventListener('load',()=>{
+ setTimeout(checkPublishedAppVersion,1200);
+ setInterval(checkPublishedAppVersion,15000);
+});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible')checkPublishedAppVersion();
+});
+window.addEventListener('focus',checkPublishedAppVersion);
+
 
 window.addEventListener('load',()=>setTimeout(mountVersionBadge,350));

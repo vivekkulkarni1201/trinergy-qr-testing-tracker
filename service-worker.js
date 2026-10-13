@@ -1,4 +1,4 @@
-const CACHE_NAME='trinergy-pwa-v6.14.10';
+const CACHE_NAME='trinergy-pwa-v6.14.11';
 
 // Keep initial install deliberately small for iPhone/Safari.
 // Other pages/assets are cached on demand after first use.
@@ -61,9 +61,9 @@ self.addEventListener('fetch', event=>{
   }
 
   // JS/CSS: network first so factory users get new code quickly; fallback to cache.
-  if(/\.(?:js|css)(?:$|\?)/i.test(url.pathname+url.search)){
+  if(/\.(?:js|css|json)(?:$|\?)/i.test(url.pathname+url.search)){
     event.respondWith(
-      fetch(req).then(res=>{
+      fetch(req,{cache:'no-store'}).then(res=>{
         if(res && res.status===200){
           const copy=res.clone();
           caches.open(CACHE_NAME).then(c=>c.put(req,copy));

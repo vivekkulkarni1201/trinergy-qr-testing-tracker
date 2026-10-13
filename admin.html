@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#061827"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Trinergy QR"><link rel="manifest" href="./manifest.webmanifest?v=6147"><link rel="apple-touch-icon" sizes="180x180" href="./trinergy-app-icon-180-v6147.png"><title>Admin</title>
-<link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="config.js"></script><link rel="icon" type="image/x-icon" href="favicon.ico"></head>
+<link rel="stylesheet" href="styles.css?v=61411"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="config.js"></script><link rel="icon" type="image/x-icon" href="favicon.ico"></head>
 <body><header id="topbar"></header><main>
 <div class="page-title"><div><h1>Admin Control Center</h1><div class="muted">Dashboard remains isolated from Admin changes</div></div></div>
 <div class="admin-tabs">
@@ -52,7 +52,16 @@
 <div class="panel admin-pane" id="pane-historical">
 <div class="panel-head"><h2>Historical / Monthly Data</h2><span class="muted">Past month target, received and completed data</span></div>
 <div class="panel-body">
-<div class="form-grid hist-top"><label>Month<input id="histMonth" type="month" min="2024-01"></label><label>Notes<input id="histNotes" placeholder="Optional note"></label></div>
+<div class="form-grid hist-top">
+<label>Year<select id="histYear"></select></label>
+<label>Month<select id="histMonthNo">
+<option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option>
+<option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option>
+<option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+</select></label>
+<input id="histMonth" type="hidden">
+<label>Notes<input id="histNotes" placeholder="Optional note"></label>
+</div>
 <div class="hist-grid">
 <div class="admin-tile"><h3>3X</h3><label>Target<input id="h3Target" type="number" min="0"></label><label>Received<input id="h3Received" type="number" min="0"></label><label>Completed<input id="h3Completed" type="number" min="0"></label></div>
 <div class="admin-tile"><h3>2X</h3><label>Target<input id="h2Target" type="number" min="0"></label><label>Received<input id="h2Received" type="number" min="0"></label><label>Completed<input id="h2Completed" type="number" min="0"></label></div>
@@ -94,4 +103,4 @@
 </div><br><button id="saveOldSerial" class="green">Add Till-Date UPS</button></div></div>
 <div class="panel admin-pane" id="pane-reasons"><div class="panel-head"><h2>Input Distribution Gap Reasons</h2><span class="muted">Add/edit A, B, C, D, E... used in Reports</span></div><div class="panel-body"><div class="scan-row"><input id="reasonCode" maxlength="4" placeholder="Code e.g. A"><input id="reasonText" placeholder="Reason description"><button id="addReason">Add / Update Reason</button></div><table class="table"><thead><tr><th>Code</th><th>Reason</th><th>Active</th><th>Save</th></tr></thead><tbody id="reasonBody"></tbody></table></div></div>
 <div class="panel admin-pane" id="pane-history"><div class="panel-head"><h2>QR Scan / Stage History</h2></div><div class="panel-body"><div class="scan-row"><input id="historySearch" placeholder="Serial / QR / Engineer / Stage"><button id="searchHistory">Search</button></div><table class="table"><thead><tr><th>Date/Time</th><th>Serial/QR</th><th>Stage</th><th>Engineer</th><th>Result</th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
-</main><div id="toast"></div><script src="shared.js"></script><script src="admin.js"></script></body></html>
+</main><div id="toast"></div><script src="shared.js?v=61411"></script><script src="admin.js?v=61411"></script></body></html>

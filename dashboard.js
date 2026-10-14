@@ -208,7 +208,7 @@ async function renderWeekly(){
             <div class="tank-neck"></div>
             <div class="tank-glass"></div>
             <div class="tank-liquid" style="height:${fill}%"><i></i></div>
-            <div class="tank-bubbles"></div>
+            <div class="tank-bubbles" style="height:${fill}%;opacity:${fill>0?.78:0}"></div>
             <div class="tank-value"><b>${actual}/${target}</b><small>COMPLETED</small></div>
           </div>
           <div class="tank-base"></div>

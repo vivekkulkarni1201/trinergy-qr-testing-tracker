@@ -22,18 +22,21 @@ function flagSvg(){
 }
 function kpiHtml(type, cls){
   const c=counts(data,type,ym()), p=c.target?Math.round(c.completed/c.target*100):0;
+  const metrics=[
+    ['target','🎯 Target',c.target],
+    ['received','▣ Received',c.received],
+    ['completed','✓ Completed',c.completed],
+    ['testing','⚙ Under Testing',c.under]
+  ];
+  if(!isPublicPortalView()) metrics.push(['stock','◇ Buffer Stock',c.stock]);
   return `<div class="kpi ${cls}">
     <div class="kpi-top">
       <div class="kpi-title"><h1>${type}</h1><b>TRINERGY ${type==='3X'?'T3X':type==='2X'?'T2X':'STS'}</b></div>
       <div class="donut" style="--pct:${Math.min(100,p)}"><div><strong>${p}%</strong><small>Completed</small></div></div>
       <div class="kpi-product">${kpiAssets[type]?`<img src="${esc(kpiAssets[type])}" alt="${type}">`:`<div class="racks"><span class="rack"></span><span class="rack"></span><span class="rack"></span></div>`}</div>
     </div>
-    <div class="kpi-stats">
-      <div class="metric target"><span>🎯 Target</span><b>${c.target}</b></div>
-      <div class="metric received"><span>▣ Received</span><b>${c.received}</b></div>
-      <div class="metric completed"><span>✓ Completed</span><b>${c.completed}</b></div>
-      <div class="metric testing"><span>⚙ Under Testing</span><b>${c.under}</b></div>
-      <div class="metric stock"><span>◇ Buffer Stock</span><b>${c.stock}</b></div>
+    <div class="kpi-stats ${isPublicPortalView()?'public-kpi-stats':''}">
+      ${metrics.map(([kind,label,val])=>`<div class="metric ${kind}"><span>${label}</span><b>${val}</b></div>`).join('')}
     </div>
   </div>`;
 }
@@ -41,11 +44,40 @@ function renderKpis(){
   $('#kpiGrid').innerHTML = kpiHtml('3X','blue')+kpiHtml('2X','green')+kpiHtml('STS','purple');
 }
 function racingCarSvg(){
-  return `<svg viewBox="0 0 120 48" aria-hidden="true">
-    <path d="M18 31h5l8-13h38l13 7h18c6 0 10 4 10 9v2H18z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
-    <circle cx="38" cy="37" r="8" fill="#061827" stroke="currentColor" stroke-width="4"/>
-    <circle cx="88" cy="37" r="8" fill="#061827" stroke="currentColor" stroke-width="4"/>
-    <path d="M43 18l8-9h22l13 16" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+  return `<svg viewBox="0 0 176 58" aria-hidden="true" class="f1-car-svg">
+    <g class="f1-smoke-group">
+      <ellipse class="smoke smoke-1" cx="18" cy="32" rx="14" ry="8"/>
+      <ellipse class="smoke smoke-2" cx="8" cy="26" rx="10" ry="6"/>
+      <ellipse class="smoke smoke-3" cx="28" cy="23" rx="8" ry="5"/>
+    </g>
+    <g class="f1-car-group">
+      <rect x="58" y="29" width="42" height="9" rx="3.5" class="f1-body"/>
+      <path d="M72 17h24l15 8h13l9 7h-27l-8 8H66l3-8H54l8-7h10z" class="f1-body"/>
+      <path d="M87 18l10-8h17l-4 8z" class="f1-body-dark"/>
+      <path d="M123 24h28l13 4-9 4h-30z" class="f1-body"/>
+      <path d="M49 29h13l-6 7H38z" class="f1-body"/>
+      <path d="M33 26h18l-2 3H30z" class="f1-wing"/>
+      <path d="M139 20h18l2 5h-17z" class="f1-wing"/>
+      <path d="M128 39h28l8 4h-32z" class="f1-wing"/>
+      <path d="M86 18h18l-2 12H82z" class="f1-cockpit"/>
+      <path d="M103 18l8-7 11 1-3 6z" class="f1-cockpit"/>
+      <circle cx="71" cy="43" r="11" class="f1-tire"/>
+      <circle cx="71" cy="43" r="5" class="f1-rim"/>
+      <circle cx="137" cy="43" r="11" class="f1-tire"/>
+      <circle cx="137" cy="43" r="5" class="f1-rim"/>
+      <circle cx="45" cy="43" r="9" class="f1-tire"/>
+      <circle cx="45" cy="43" r="4" class="f1-rim"/>
+      <circle cx="155" cy="43" r="9" class="f1-tire"/>
+      <circle cx="155" cy="43" r="4" class="f1-rim"/>
+      <path d="M96 12h22l5 2h-27z" class="f1-accent"/>
+      <path d="M87 32h23l-2 6H85z" class="f1-accent"/>
+      <path d="M108 25h14" class="f1-white-line"/>
+      <path d="M60 33h35" class="f1-white-line"/>
+      <g transform="translate(97 24)">
+        <path d="M0 0 L10 -2 L16 5 L10 14 L0 12 Z" class="f1-shield"/>
+        <text x="8" y="9" text-anchor="middle" class="f1-shield-text">SF</text>
+      </g>
+    </g>
   </svg>`;
 }
 function renderPerformance(){
@@ -98,16 +130,23 @@ function localDayKey(value){
  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
  return `${y}-${m}-${day}`;
 }
+
+function renderTodayHeader(){
+  const head=$('.today-table thead tr');
+  if(!head) return;
+  head.innerHTML=`<th>Type</th><th class="r">Received</th><th class="c">Completed</th><th class="u">Under Testing</th><th class="h">Under Heatrun</th>${isPublicPortalView()?'':'<th class="s">Buffer Stock</th>'}`;
+}
 function renderToday(){
  const now=new Date(),today=localDayKey(now);
  $('#todayDate').textContent=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+ renderTodayHeader();
  $('#todayBody').innerHTML=['3X','2X','STS'].map(t=>{
    const rec=data.u.filter(x=>x.ups_type===t&&localDayKey(x.received_at)===today).length;
    const comp=data.u.filter(x=>x.ups_type===t&&localDayKey(x.completed_at)===today).length;
    const under=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING').length;
    const heat=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING'&&runningTimedEvent(x)).length;
    const stock=data.u.filter(x=>x.ups_type===t&&x.status==='STOCK').length;
-   return `<tr><th>${t}</th><td class="r">${rec}</td><td class="c">${comp}</td><td class="u">${under}</td><td class="h">${heat}</td><td class="s">${stock}</td></tr>`;
+   return `<tr><th>${t}</th><td class="r">${rec}</td><td class="c">${comp}</td><td class="u">${under}</td><td class="h">${heat}</td>${isPublicPortalView()?'':`<td class="s">${stock}</td>`}</tr>`;
  }).join('');
 }
 async function timerText(u){

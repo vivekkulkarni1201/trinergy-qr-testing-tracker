@@ -5,7 +5,63 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.12';
+const TQR_APP_VERSION = 'v6.14.13';
+
+
+const TQR_VIEW_KEY = 'tqr_portal_view';
+function getPortalView(){
+  try{
+    const url=new URL(location.href);
+    const q=(url.searchParams.get('view')||'').toLowerCase();
+    if(q==='public' || q==='testing'){
+      localStorage.setItem(TQR_VIEW_KEY,q);
+      return q;
+    }
+  }catch{}
+  try{
+    const stored=(localStorage.getItem(TQR_VIEW_KEY)||'').toLowerCase();
+    if(stored==='public' || stored==='testing') return stored;
+  }catch{}
+  return 'testing';
+}
+function isPublicPortalView(){ return getPortalView()==='public'; }
+function isTestingPortalView(){ return getPortalView()==='testing'; }
+function setPortalView(mode){
+  const next=(mode==='public')?'public':'testing';
+  try{ localStorage.setItem(TQR_VIEW_KEY,next); }catch{}
+  try{
+    const url=new URL(location.href);
+    url.searchParams.set('view',next);
+    location.replace(url.toString());
+  }catch{
+    location.reload();
+  }
+}
+function applyPortalViewClass(){
+  document.body?.classList.toggle('public-view',isPublicPortalView());
+  document.body?.classList.toggle('testing-view',isTestingPortalView());
+}
+function bindPortalViewSwitch(){
+  document.querySelectorAll('[data-view-mode]').forEach(btn=>{
+    btn.onclick=()=>setPortalView(btn.dataset.viewMode);
+  });
+}
+function publicAllowedPages(){
+  return ['dashboard','active','bays'];
+}
+function restrictPublicPage(active){
+  if(!isPublicPortalView()) return;
+  if(publicAllowedPages().includes(active)) return;
+  try{
+    const url=new URL('index.html',location.href);
+    url.searchParams.set('view','public');
+    location.replace(url.toString());
+  }catch{}
+}
+window.getPortalView=getPortalView;
+window.isPublicPortalView=isPublicPortalView;
+window.isTestingPortalView=isTestingPortalView;
+window.setPortalView=setPortalView;
 
 function showToast(msg){
   const t = $('#toast');
@@ -37,7 +93,8 @@ function showUpdateNotice(){
 }
 
 function navHtml(active){
-  const items = [
+  const currentView=getPortalView();
+  const allItems = [
     ['dashboard','index.html','⌂','Dashboard'],
     ['active','active.html','☷','Active UPS'],
     ['bays','bays.html','▦','Test Bay Monitoring'],
@@ -48,13 +105,26 @@ function navHtml(active){
     ['admin','admin.html','⚙','Admin'],
     ['reports','reports.html','▥','Reports']
   ];
+  const allowedPublic=new Set(publicAllowedPages());
+  const items=currentView==='public' ? allItems.filter(x=>allowedPublic.has(x[0])) : allItems;
   return `<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div>
-  <nav class="navtabs">${items.map(([id,href,icon,label])=>`<a class="navtab ${active===id?'active':''}" href="${href}"><span>${icon}</span>${label}</a>`).join('')}</nav>
+  <nav class="navtabs">${items.map(([id,href,icon,label])=>{
+      const url=new URL(href,location.href);
+      url.searchParams.set('view',currentView);
+      return `<a class="navtab ${active===id?'active':''}" href="${url.pathname.split('/').pop()}${url.search}"><span>${icon}</span>${label}</a>`;
+    }).join('')}</nav>
+  <div class="portal-view-toggle" aria-label="Portal view mode">
+    <button type="button" class="portal-view-btn ${currentView==='public'?'active':''}" data-view-mode="public">Public View</button>
+    <button type="button" class="portal-view-btn ${currentView==='testing'?'active':''}" data-view-mode="testing">Testing View</button>
+  </div>
   <div class="navright"><span class="live-dot"></span><span class="live-label">Live</span><div class="clockbox"><span id="dateNow"></span><b id="timeNow"></b></div></div>`;
 }
 function mountTopbar(active){
+  applyPortalViewClass();
+  restrictPublicPage(active);
   const e = $('#topbar'); if(!e) return;
   e.innerHTML = navHtml(active);
+  bindPortalViewSwitch();
   const tick = ()=>{
     const d = new Date();
     const date = $('#dateNow'), time = $('#timeNow');
@@ -122,6 +192,8 @@ function directScan(qr){ location.href = `scan.html?qr=${encodeURIComponent(qr)}
 
 
 function mountScanHeader(){
+  applyPortalViewClass();
+  if(isPublicPortalView()){ setPortalView('testing'); return; }
   const e=$('#topbar'); if(!e)return;
   e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`; mountVersionBadge();
 }
@@ -392,3 +464,5 @@ window.addEventListener('focus',checkPublishedAppVersion);
 
 
 window.addEventListener('load',()=>setTimeout(mountVersionBadge,350));
+
+window.addEventListener('DOMContentLoaded',applyPortalViewClass);

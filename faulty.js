@@ -17,13 +17,41 @@ function fillBay(id){
  el.innerHTML='<option value="">Select compatible bay...</option>'+free.map(x=>`<option value="${x.bay.id}|${x.section}">${esc(x.label)}</option>`).join('');
 }
 async function boot(){
- coreData=await loadCore();units=coreData.u.filter(u=>u.status==='RTA'||u.faulted);
+ coreData=await loadCore();units=coreData.u.filter(u=>u.status==='RTA');
  $('#faultBody').innerHTML=units.map(u=>`<tr><td class="faulted-serial">${esc(u.serial_number||u.qr_code)}</td><td>${u.ups_type}</td><td>${u.faulted_at?new Date(u.faulted_at).toLocaleString():'—'}</td><td>${esc(u.current_stage)}</td><td><select id="rs_${u.id}" onchange="fillBay('${u.id}')">${stageOptions(u).map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><select id="rb_${u.id}" class="fault-bay-select"></select><button class="danger" onclick="reenter('${u.id}')">RE-ENTER TESTING</button></td></tr>`).join('')||'<tr><td colspan="5">No faulty UPS.</td></tr>';
  units.forEach(u=>fillBay(u.id));
 }
 async function reenter(id){
- const u=units.find(x=>x.id===id),stage=$('#rs_'+id).value,bv=$('#rb_'+id).value;if(!bv)return showToast('Select compatible bay');
- const [bay_id,section]=bv.split('|'),p={},now=nowIso(),zero=k=>{p[k+'_started']=false;p[k+'_started_at']=null;p[k+'_passed']=false;p[k+'_passed_at']=null};
+ const u=units.find(x=>x.id===id),stage=$('#rs_'+id).value,bv=$('#rb_'+id).value;
+ if(!u)return showToast('Faulty UPS record not found');
+ if(!bv)return showToast('Select compatible bay');
+
+ // Re-read live data before movement so a stale page cannot double-book a bay.
+ coreData=await loadCore();
+ const fresh=coreData.u.find(x=>x.id===id);
+ if(!fresh || fresh.status!=='RTA'){
+   showToast('UPS is no longer in Faulty Area');
+   return boot();
+ }
+
+ const [bay_id_raw,section]=bv.split('|');
+ const bay=coreData.b.find(b=>String(b.id)===String(bay_id_raw));
+ if(!bay)return showToast('Selected bay is no longer available');
+
+ if(fresh.ups_type==='STS'){
+   const expectedKind=stage==='STS_TEST'?'STS_TEST':'STS_HEATRUN';
+   if(!['STS_TEST','STS_HEATRUN'].includes(expectedKind) || bay.bay_kind!==expectedKind)
+     return showToast('Select a compatible STS bay');
+   if(coreData.o.some(o=>String(o.bay_id)===String(bay.id)))
+     return showToast('Selected STS bay is already occupied');
+ }else{
+   if(bay.bay_kind!=='CORE')return showToast('2X/3X can re-enter only to Core Test Bays');
+   const liveFree=coreBayFreeSlot(coreData,bay.id);
+   if(!liveFree)return showToast('Selected Core bay is now full');
+   if(section!==liveFree)return showToast('Bay slot changed — reselect destination');
+ }
+
+ const bay_id=bay.id,p={},now=nowIso(),zero=k=>{p[k+'_started']=false;p[k+'_started_at']=null;p[k+'_passed']=false;p[k+'_passed_at']=null};
  if(u.ups_type==='STS'){
    if(stage==='STS_TEST'){p.lv_passed=false;p.hipot_passed=false;p.hv_started=false;p.hv_passed=false;zero('core_heatrun');p.parameters_480v_saved=false}
    else if(stage==='STS_HEATRUN'){zero('core_heatrun');p.parameters_480v_saved=false}
@@ -41,8 +69,19 @@ async function reenter(id){
  await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',id).is('released_at',null);
  r=await sb.from('tqr_bay_occupancy').insert({bay_id,section,unit_id:id});if(r.error)return showToast(r.error.message);
  const label=u.ups_type==='STS'?(stage==='STS_TEST'?'STS TEST RE-ENTRY':stage==='STS_HEATRUN'?'STS HEATRUN RE-ENTRY':'480V RE-ENTRY'):`RE-ENTRY FROM ${stage}`;
- r=await sb.from('tqr_units').update({status:'UNDER_TESTING',current_stage:label,parked:false}).eq('id',id);if(r.error)return showToast(r.error.message);
+ r=await sb.from('tqr_units')
+   .update({status:'UNDER_TESTING',current_stage:label,parked:false})
+   .eq('id',id)
+   .eq('status','RTA')
+   .select('id,status');
+ if(r.error)return showToast(r.error.message);
+ if(!r.data?.length){
+   await sb.from('tqr_bay_occupancy').update({released_at:nowIso()}).eq('unit_id',id).is('released_at',null);
+   showToast('Re-entry cancelled — UPS state changed');
+   return boot();
+ }
  await sb.from('tqr_stage_history').insert({unit_id:id,action:'RE-ENTRY',stage:label,result:'IN_PROGRESS'});
- showToast('UPS re-entered testing');await boot();
+ showToast('UPS moved out of Faulty Area and re-entered testing');
+ await boot();
 }
 Object.assign(window,{fillBay,reenter});boot().catch(e=>showToast(e.message));realtimeWatch('faulty',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],debounceAsync(()=>boot().catch(()=>{}),350));

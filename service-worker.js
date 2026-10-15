@@ -1,4 +1,4 @@
-const CACHE_NAME='trinergy-pwa-v6.14.13';
+const CACHE_NAME='trinergy-pwa-v6.14.14';
 
 // Keep initial install deliberately small for iPhone/Safari.
 // Other pages/assets are cached on demand after first use.

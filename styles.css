@@ -749,3 +749,40 @@ body.public-view .metric.stock{display:none!important}
 @media(max-width:430px){
   .race-car{width:72px!important;height:28px!important;top:3px!important}
 }
+
+/* v6.14.15 refined Ferrari F1 monthly performance car */
+.race-car{
+  width:104px!important;
+  height:34px!important;
+  top:3px!important;
+  filter:drop-shadow(0 0 11px rgba(220,0,0,.38))!important;
+}
+.race-car .f1-body{fill:#DC0000}
+.race-car .f1-body-dark{fill:#8d0000}
+.race-car .f1-wing{fill:#4b0000}
+.race-car .f1-cockpit{fill:#0f1724}
+.race-car .f1-intake{fill:#151b28}
+.race-car .f1-sidepod-highlight{fill:rgba(255,105,105,.45)}
+.race-car .f1-tire{fill:#090d14;stroke:#8f9caf;stroke-width:1.2}
+.race-car .f1-rim{fill:#ebf1f7}
+.race-car .f1-flash{fill:#ff6a6a}
+.race-car .f1-white-line{fill:#ffffff;opacity:.95}
+.race-car .f1-shield{fill:#ffe36a;stroke:#111;stroke-width:1.1}
+.race-car .f1-shield-top{fill:#2da24a}
+.race-car .f1-shield-text{fill:#111;font-size:8.2px;font-weight:900;font-family:Arial,sans-serif;letter-spacing:.2px}
+.race-car .f1-shield-group{filter:drop-shadow(0 0 1px rgba(255,255,255,.25))}
+.race-car .smoke{fill:rgba(224,235,247,.38);filter:blur(1.3px);transform-origin:center;animation:smokeTrailF1 1.5s ease-in-out infinite}
+.race-car .smoke-2{animation-delay:.18s;opacity:.72}
+.race-car .smoke-3{animation-delay:.34s;opacity:.58}
+.race-car .f1-car-group{animation:f1Float 1.5s ease-in-out infinite alternate}
+@keyframes smokeTrailF1{
+  0%{transform:translateX(0) scale(.92);opacity:.12}
+  45%{opacity:.48}
+  100%{transform:translateX(-10px) scale(1.2);opacity:.03}
+}
+@media(max-width:700px){
+  .race-car{width:88px!important;height:29px!important;top:4px!important}
+}
+@media(max-width:430px){
+  .race-car{width:82px!important;height:27px!important;top:4px!important}
+}

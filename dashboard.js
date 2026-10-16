@@ -44,42 +44,46 @@ function renderKpis(){
   $('#kpiGrid').innerHTML = kpiHtml('3X','blue')+kpiHtml('2X','green')+kpiHtml('STS','purple');
 }
 function racingCarSvg(){
-  return `<svg viewBox="0 0 176 58" aria-hidden="true" class="f1-car-svg">
+  return `<svg viewBox="0 0 216 62" aria-hidden="true" class="f1-car-svg">
     <g class="f1-smoke-group">
-      <ellipse class="smoke smoke-1" cx="18" cy="32" rx="14" ry="8"/>
-      <ellipse class="smoke smoke-2" cx="8" cy="26" rx="10" ry="6"/>
-      <ellipse class="smoke smoke-3" cx="28" cy="23" rx="8" ry="5"/>
+      <ellipse class="smoke smoke-1" cx="22" cy="33" rx="15" ry="8"/>
+      <ellipse class="smoke smoke-2" cx="10" cy="26" rx="11" ry="6.5"/>
+      <ellipse class="smoke smoke-3" cx="31" cy="23" rx="9" ry="5.5"/>
     </g>
     <g class="f1-car-group">
-      <rect x="58" y="29" width="42" height="9" rx="3.5" class="f1-body"/>
-      <path d="M72 17h24l15 8h13l9 7h-27l-8 8H66l3-8H54l8-7h10z" class="f1-body"/>
-      <path d="M87 18l10-8h17l-4 8z" class="f1-body-dark"/>
-      <path d="M123 24h28l13 4-9 4h-30z" class="f1-body"/>
-      <path d="M49 29h13l-6 7H38z" class="f1-body"/>
-      <path d="M33 26h18l-2 3H30z" class="f1-wing"/>
-      <path d="M139 20h18l2 5h-17z" class="f1-wing"/>
-      <path d="M128 39h28l8 4h-32z" class="f1-wing"/>
-      <path d="M86 18h18l-2 12H82z" class="f1-cockpit"/>
-      <path d="M103 18l8-7 11 1-3 6z" class="f1-cockpit"/>
-      <circle cx="71" cy="43" r="11" class="f1-tire"/>
-      <circle cx="71" cy="43" r="5" class="f1-rim"/>
-      <circle cx="137" cy="43" r="11" class="f1-tire"/>
-      <circle cx="137" cy="43" r="5" class="f1-rim"/>
-      <circle cx="45" cy="43" r="9" class="f1-tire"/>
-      <circle cx="45" cy="43" r="4" class="f1-rim"/>
-      <circle cx="155" cy="43" r="9" class="f1-tire"/>
-      <circle cx="155" cy="43" r="4" class="f1-rim"/>
-      <path d="M96 12h22l5 2h-27z" class="f1-accent"/>
-      <path d="M87 32h23l-2 6H85z" class="f1-accent"/>
-      <path d="M108 25h14" class="f1-white-line"/>
-      <path d="M60 33h35" class="f1-white-line"/>
-      <g transform="translate(97 24)">
-        <path d="M0 0 L10 -2 L16 5 L10 14 L0 12 Z" class="f1-shield"/>
-        <text x="8" y="9" text-anchor="middle" class="f1-shield-text">SF</text>
+      <path d="M20 41h31l15-7h25l-1 7H20z" class="f1-wing"/>
+      <path d="M34 32h27l7-7h22l-3 7H34z" class="f1-body-dark"/>
+      <path d="M46 43c8-7 13-13 22-18h29l5 18H46z" class="f1-body"/>
+      <path d="M86 22l21-12h24c6 0 11 1 15 4l11 8h20l17 5-8 6h-33l-8 10H91l-2-9H73l4-6h14l4-6z" class="f1-body"/>
+      <path d="M103 18l12-8h19l6 2-5 8z" class="f1-body-dark"/>
+      <path d="M147 21h21l10 4-4 4h-24z" class="f1-wing"/>
+      <path d="M158 42h32l12 4h-39z" class="f1-wing"/>
+      <path d="M95 19h24c4 0 7 4 7 8v3H92l3-11z" class="f1-cockpit"/>
+      <path d="M112 18l9-6 9 1-2 5z" class="f1-cockpit"/>
+      <path d="M118 19h10l8 2h-18z" class="f1-intake"/>
+      <rect x="86" y="34" width="32" height="3" rx="1.5" class="f1-white-line"/>
+      <rect x="154" y="26" width="16" height="2.5" rx="1.25" class="f1-white-line"/>
+      <rect x="60" y="38" width="20" height="2.5" rx="1.25" class="f1-white-line"/>
+      <path d="M82 25h35l4 10H78z" class="f1-sidepod-highlight"/>
+      <g class="f1-shield-group" transform="translate(108 24)">
+        <path d="M0 2 L11 0 L22 2 L20 16 L11 21 L2 16 Z" class="f1-shield"/>
+        <path d="M2 3h18l-1 3H3z" class="f1-shield-top"/>
+        <text x="11" y="14" text-anchor="middle" class="f1-shield-text">SF</text>
       </g>
+      <circle cx="72" cy="46" r="12" class="f1-tire"/>
+      <circle cx="72" cy="46" r="5.2" class="f1-rim"/>
+      <circle cx="154" cy="46" r="12" class="f1-tire"/>
+      <circle cx="154" cy="46" r="5.2" class="f1-rim"/>
+      <circle cx="46" cy="46" r="10" class="f1-tire"/>
+      <circle cx="46" cy="46" r="4.2" class="f1-rim"/>
+      <circle cx="182" cy="46" r="10" class="f1-tire"/>
+      <circle cx="182" cy="46" r="4.2" class="f1-rim"/>
+      <path d="M66 24h8l-4 6h-8z" class="f1-flash"/>
+      <path d="M145 18h11l6 2h-15z" class="f1-flash"/>
     </g>
   </svg>`;
 }
+
 function renderPerformance(){
   $('#monthLabel').textContent=monthLabel();
   $('#performance').innerHTML=`<div class="race-board">${['3X','2X','STS'].map(t=>{

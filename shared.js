@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.16';
+const TQR_APP_VERSION = 'v6.14.17';
 
 
 const TQR_VIEW_KEY = 'tqr_portal_view';
@@ -42,10 +42,13 @@ function applyPortalViewClass(){
   document.body?.classList.toggle('testing-view',isTestingPortalView());
 }
 function bindPortalViewSwitch(){
-  document.querySelectorAll('[data-view-mode]').forEach(btn=>{
-    btn.onclick=()=>setPortalView(btn.dataset.viewMode);
-  });
+  const sw=document.querySelector('[data-view-toggle]');
+  if(sw){
+    sw.checked=isTestingPortalView();
+    sw.onchange=()=>setPortalView(sw.checked?'testing':'public');
+  }
 }
+
 function publicAllowedPages(){
   return ['dashboard','active','bays'];
 }
@@ -113,9 +116,12 @@ function navHtml(active){
       url.searchParams.set('view',currentView);
       return `<a class="navtab ${active===id?'active':''}" href="${url.pathname.split('/').pop()}${url.search}"><span>${icon}</span>${label}</a>`;
     }).join('')}</nav>
-  <div class="portal-view-toggle" aria-label="Portal view mode">
-    <button type="button" class="portal-view-btn ${currentView==='public'?'active':''}" data-view-mode="public">Public View</button>
-    <button type="button" class="portal-view-btn ${currentView==='testing'?'active':''}" data-view-mode="testing">Testing View</button>
+  <div class="portal-view-toggle compact" aria-label="Portal view mode" title="View">
+    <span class="portal-view-title">View</span>
+    <label class="portal-view-switch" aria-label="View toggle">
+      <input type="checkbox" data-view-toggle ${currentView==='testing'?'checked':''}>
+      <span class="portal-view-slider"></span>
+    </label>
   </div>
   <div class="navright"><span class="live-dot"></span><span class="live-label">Live</span><div class="clockbox"><span id="dateNow"></span><b id="timeNow"></b></div></div>`;
 }

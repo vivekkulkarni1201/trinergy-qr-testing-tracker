@@ -842,3 +842,68 @@ body.public-view .metric.stock{display:none!important}
   .race-car{width:100px!important;height:31px!important;top:2px!important}
   .f1-real-car{width:94px}
 }
+
+
+/* v6.14.17 generic view switch label + brighter Ferrari logo */
+.portal-view-toggle.compact{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:6px 10px;
+  border:1px solid #1a5d83;
+  border-radius:12px;
+  background:linear-gradient(180deg,#08243a,#061a2a);
+  box-shadow:inset 0 0 14px rgba(0,192,255,.06);
+}
+.portal-view-title{
+  color:#dff7ff;
+  font-weight:800;
+  letter-spacing:.02em;
+  font-size:14px;
+}
+.portal-view-switch{
+  position:relative;
+  display:inline-flex;
+  width:52px;
+  height:28px;
+  cursor:pointer;
+}
+.portal-view-switch input{position:absolute;opacity:0;inset:0}
+.portal-view-slider{
+  position:absolute;
+  inset:0;
+  border-radius:999px;
+  border:1px solid #2176a4;
+  background:linear-gradient(180deg,#061523,#0a2740);
+  box-shadow:inset 0 0 10px rgba(0,192,255,.09);
+  transition:all .18s ease;
+}
+.portal-view-slider:before{
+  content:'';
+  position:absolute;
+  left:3px; top:3px;
+  width:20px; height:20px;
+  border-radius:50%;
+  background:linear-gradient(180deg,#96e8ff,#2aa9f0);
+  box-shadow:0 0 14px rgba(42,207,255,.35);
+  transition:transform .18s ease, background .18s ease;
+}
+.portal-view-switch input:checked + .portal-view-slider{
+  background:linear-gradient(180deg,#0d4f72,#0a3550);
+  border-color:#2acfff;
+  box-shadow:0 0 16px rgba(0,194,255,.14), inset 0 0 12px rgba(0,194,255,.12);
+}
+.portal-view-switch input:checked + .portal-view-slider:before{
+  transform:translateX(24px);
+  background:linear-gradient(180deg,#ffffff,#7de4ff);
+}
+@media(max-width:980px){
+  .portal-view-toggle.compact{order:3;width:auto;justify-content:center}
+}
+@media(max-width:700px){
+  .portal-view-toggle.compact{width:auto;justify-content:center;padding:6px 10px}
+  .portal-view-title{font-size:13px}
+}
+.f1-real-car{
+  filter:drop-shadow(0 0 5px rgba(255,25,25,.28)) saturate(1.05) contrast(1.04)!important;
+}

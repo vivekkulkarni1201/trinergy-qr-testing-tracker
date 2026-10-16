@@ -44,44 +44,12 @@ function renderKpis(){
   $('#kpiGrid').innerHTML = kpiHtml('3X','blue')+kpiHtml('2X','green')+kpiHtml('STS','purple');
 }
 function racingCarSvg(){
-  return `<svg viewBox="0 0 216 62" aria-hidden="true" class="f1-car-svg">
-    <g class="f1-smoke-group">
-      <ellipse class="smoke smoke-1" cx="22" cy="33" rx="15" ry="8"/>
-      <ellipse class="smoke smoke-2" cx="10" cy="26" rx="11" ry="6.5"/>
-      <ellipse class="smoke smoke-3" cx="31" cy="23" rx="9" ry="5.5"/>
-    </g>
-    <g class="f1-car-group">
-      <path d="M20 41h31l15-7h25l-1 7H20z" class="f1-wing"/>
-      <path d="M34 32h27l7-7h22l-3 7H34z" class="f1-body-dark"/>
-      <path d="M46 43c8-7 13-13 22-18h29l5 18H46z" class="f1-body"/>
-      <path d="M86 22l21-12h24c6 0 11 1 15 4l11 8h20l17 5-8 6h-33l-8 10H91l-2-9H73l4-6h14l4-6z" class="f1-body"/>
-      <path d="M103 18l12-8h19l6 2-5 8z" class="f1-body-dark"/>
-      <path d="M147 21h21l10 4-4 4h-24z" class="f1-wing"/>
-      <path d="M158 42h32l12 4h-39z" class="f1-wing"/>
-      <path d="M95 19h24c4 0 7 4 7 8v3H92l3-11z" class="f1-cockpit"/>
-      <path d="M112 18l9-6 9 1-2 5z" class="f1-cockpit"/>
-      <path d="M118 19h10l8 2h-18z" class="f1-intake"/>
-      <rect x="86" y="34" width="32" height="3" rx="1.5" class="f1-white-line"/>
-      <rect x="154" y="26" width="16" height="2.5" rx="1.25" class="f1-white-line"/>
-      <rect x="60" y="38" width="20" height="2.5" rx="1.25" class="f1-white-line"/>
-      <path d="M82 25h35l4 10H78z" class="f1-sidepod-highlight"/>
-      <g class="f1-shield-group" transform="translate(108 24)">
-        <path d="M0 2 L11 0 L22 2 L20 16 L11 21 L2 16 Z" class="f1-shield"/>
-        <path d="M2 3h18l-1 3H3z" class="f1-shield-top"/>
-        <text x="11" y="14" text-anchor="middle" class="f1-shield-text">SF</text>
-      </g>
-      <circle cx="72" cy="46" r="12" class="f1-tire"/>
-      <circle cx="72" cy="46" r="5.2" class="f1-rim"/>
-      <circle cx="154" cy="46" r="12" class="f1-tire"/>
-      <circle cx="154" cy="46" r="5.2" class="f1-rim"/>
-      <circle cx="46" cy="46" r="10" class="f1-tire"/>
-      <circle cx="46" cy="46" r="4.2" class="f1-rim"/>
-      <circle cx="182" cy="46" r="10" class="f1-tire"/>
-      <circle cx="182" cy="46" r="4.2" class="f1-rim"/>
-      <path d="M66 24h8l-4 6h-8z" class="f1-flash"/>
-      <path d="M145 18h11l6 2h-15z" class="f1-flash"/>
-    </g>
-  </svg>`;
+  return `<div class="f1-real-wrap" aria-hidden="true">
+    <span class="f1-real-smoke smoke-a"></span>
+    <span class="f1-real-smoke smoke-b"></span>
+    <span class="f1-real-smoke smoke-c"></span>
+    <img class="f1-real-car" src="ferrari-f1-rosso-corsa.png" alt="">
+  </div>`;
 }
 
 function renderPerformance(){

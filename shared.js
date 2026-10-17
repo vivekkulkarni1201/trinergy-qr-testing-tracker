@@ -5,27 +5,26 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.21';
+const TQR_APP_VERSION = 'v6.14.22';
 
-/* v6.14.21 persistent engineer portal login */
-const TQR_LOGIN_KEY='tqr_engineer_portal_login';
+/* v6.14.22 — secure persistent engineer session + admin role */
+const TQR_LOGIN_KEY='tqr_engineer_portal_session';
 let _tqrLoginCheckDone=false;
-function tqrEngineerName(x){return String(x?.name||x?.engineer_name||x?.full_name||'').trim()}
-function tqrEngineerId(x){return String(x?.employee_id||x?.emp_id||x?.code||'').trim()}
-function tqrEngineerActive(x){if(x?.active===false||x?.is_active===false)return false;if(String(x?.status||'').toUpperCase()==='INACTIVE')return false;return true}
-async function tqrActiveEngineers(){const r=await sb.from('tqr_engineers').select('*').limit(500);if(r.error)throw r.error;return (r.data||[]).filter(tqrEngineerActive)}
-function tqrGetSavedLogin(){try{const x=JSON.parse(localStorage.getItem(TQR_LOGIN_KEY)||'null');return x&&x.employee_id?x:null}catch{return null}}
-function tqrSaveLogin(row){const name=tqrEngineerName(row),employee_id=tqrEngineerId(row);localStorage.setItem(TQR_LOGIN_KEY,JSON.stringify({name,employee_id,saved_at:Date.now()}))}
-function tqrLogout(){try{localStorage.removeItem(TQR_LOGIN_KEY)}catch{}location.reload()}
+function tqrGetSavedLogin(){try{const x=JSON.parse(localStorage.getItem(TQR_LOGIN_KEY)||'null');return x&&x.session_token&&x.name?x:null}catch{return null}}
+function tqrSaveLogin(row){const x={session_token:String(row.session_token||''),name:String(row.engineer_name||row.name||'').trim(),is_admin:row.is_admin===true,saved_at:Date.now()};localStorage.setItem(TQR_LOGIN_KEY,JSON.stringify(x));return x}
+async function tqrLogout(){const x=tqrGetSavedLogin();try{if(x?.session_token)await sb.rpc('tqr_engineer_logout',{p_session_token:x.session_token})}catch{}try{localStorage.removeItem(TQR_LOGIN_KEY)}catch{}location.reload()}
 window.tqrLogout=tqrLogout;
 function tqrNeedsLogin(){return getPortalView()==='testing'}
-function tqrLoginOverlay(){let o=document.querySelector('.portal-login-overlay');if(o)return o;o=document.createElement('div');o.className='portal-login-overlay';o.innerHTML=`<div class="portal-login-card"><div class="portal-login-brand"><img src="trinergy-brand-banner.png" alt="TRINERGY"></div><div class="portal-login-eyebrow">AUTHORIZED PERSONNEL ONLY</div><h2>Engineer Login</h2><p>Login once on this browser. Trinergy will remember this engineer until Logout or Admin disables the account.</p><label>Engineer Name<select id="portalLoginEngineer"><option>Loading engineers…</option></select></label><label>Employee ID<input id="portalLoginId" autocomplete="username" placeholder="Enter Employee ID"></label><button type="button" id="portalLoginBtn">Login to Trinergy Tracker</button><div id="portalLoginMsg" class="portal-login-msg"></div></div>`;document.body.appendChild(o);return o}
-async function tqrShowLogin(){const o=tqrLoginOverlay(),dd=o.querySelector('#portalLoginEngineer'),msg=o.querySelector('#portalLoginMsg');let rows=[];try{rows=await tqrActiveEngineers();dd.innerHTML='<option value="">Select registered engineer…</option>'+rows.map((x,i)=>`<option value="${i}">${esc(tqrEngineerName(x))}${tqrEngineerId(x)?' — '+esc(tqrEngineerId(x)):''}</option>`).join('')}catch(e){dd.innerHTML='<option value="">Unable to load engineer list</option>';msg.textContent='Unable to verify engineers. Check connection and try again.'}o.querySelector('#portalLoginBtn').onclick=()=>{msg.textContent='';const row=rows[Number(dd.value)],entered=String(o.querySelector('#portalLoginId').value||'').trim().toLowerCase();if(!row){msg.textContent='Select a registered engineer.';return}if(!entered||entered!==tqrEngineerId(row).toLowerCase()){msg.textContent='Authorized personnel only — Employee ID does not match.';return}tqrSaveLogin(row);o.remove();tqrShowLoggedInChip(row);showToast('Engineer login successful')}}
-function tqrShowLoggedInChip(row){if(document.querySelector('.portal-login-chip'))return;const chip=document.createElement('div');chip.className='portal-login-chip';chip.innerHTML=`<span>👤 ${esc(tqrEngineerName(row)||row.name||'Engineer')}</span><button type="button">Logout</button>`;chip.querySelector('button').onclick=tqrLogout;document.body.appendChild(chip)}
-async function tqrValidateSavedLogin(){if(_tqrLoginCheckDone)return;_tqrLoginCheckDone=true;if(!tqrNeedsLogin())return;const saved=tqrGetSavedLogin();if(!saved){await tqrShowLogin();return}try{const rows=await tqrActiveEngineers();const row=rows.find(x=>tqrEngineerId(x).toLowerCase()===String(saved.employee_id).toLowerCase());if(!row){localStorage.removeItem(TQR_LOGIN_KEY);await tqrShowLogin();return}tqrSaveLogin(row);tqrShowLoggedInChip(row)}catch{tqrShowLoggedInChip(saved)}}
+function tqrLoginOverlay(){let o=document.querySelector('.portal-login-overlay');if(o)return o;o=document.createElement('div');o.className='portal-login-overlay';o.innerHTML=`<div class="portal-login-card"><div class="portal-login-brand"><img src="trinergy-brand-banner.png" alt="TRINERGY"></div><div class="portal-login-eyebrow">AUTHORIZED PERSONNEL ONLY</div><h2>Engineer Login</h2><p>Login once on this browser. Your login stays remembered until Logout or Admin disables your account.</p><label>Engineer Name<select id="portalLoginEngineer"><option>Loading engineers…</option></select></label><label>Password<input id="portalLoginId" type="password" autocomplete="current-password" placeholder="Enter Employee ID"><small class="portal-login-hint">Your Employee ID is your password.</small></label><button type="button" id="portalLoginBtn">Login to Trinergy Tracker</button><div id="portalLoginMsg" class="portal-login-msg"></div></div>`;document.body.appendChild(o);return o}
+async function tqrEngineerNames(){const r=await sb.rpc('tqr_engineer_names');if(r.error)throw r.error;return(r.data||[]).map(x=>String(x.engineer_name||'').trim()).filter(Boolean)}
+async function tqrShowLogin(){const o=tqrLoginOverlay(),dd=o.querySelector('#portalLoginEngineer'),msg=o.querySelector('#portalLoginMsg');let names=[];try{names=await tqrEngineerNames();dd.innerHTML='<option value="">Select registered engineer…</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}catch(e){dd.innerHTML='<option value="">Unable to load engineer list</option>';msg.textContent='Unable to verify engineers. Check network and try again.'}const doLogin=async()=>{msg.textContent='';const engineer_name=String(dd.value||'').trim(),employee_id=String(o.querySelector('#portalLoginId').value||'').trim();if(!engineer_name){msg.textContent='Select a registered engineer.';return}if(!employee_id){msg.textContent='Enter your Employee ID.';return}const r=await sb.rpc('tqr_engineer_login',{p_engineer_name:engineer_name,p_employee_id:employee_id});if(r.error){msg.textContent='Login verification failed.';return}const row=Array.isArray(r.data)?r.data[0]:r.data;if(!row?.session_token){msg.textContent='Authorized personnel only — invalid Employee ID.';return}const saved=tqrSaveLogin(row);o.remove();tqrShowLoggedInChip(saved);tqrRefreshTopbar();tqrApplyAdminGate(saved);showToast('Engineer login successful')};o.querySelector('#portalLoginBtn').onclick=doLogin;o.querySelector('#portalLoginId').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()})}
+function tqrShowLoggedInChip(row){document.querySelector('.portal-login-chip')?.remove();const chip=document.createElement('div');chip.className='portal-login-chip';chip.innerHTML=`<span>👤 ${esc(row.name||row.engineer_name||'Engineer')}</span>${row.is_admin===true?'<b class="admin-role-chip">ADMIN</b>':''}<button type="button">Logout</button>`;chip.querySelector('button').onclick=tqrLogout;document.body.appendChild(chip)}
+async function tqrValidateSession(saved){const r=await sb.rpc('tqr_validate_engineer_session',{p_session_token:saved.session_token});if(r.error)return null;const row=Array.isArray(r.data)?r.data[0]:r.data;return row?.session_token?row:null}
+function tqrApplyAdminGate(row){const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(page!=='admin.html')return;document.documentElement.classList.remove('admin-auth-pending');if(row?.is_admin===true)return;showToast('Admin access only');setTimeout(()=>{const u=new URL('index.html',location.href);u.searchParams.set('view','testing');location.replace(u.toString())},350)}
+function tqrRefreshTopbar(){if(window._tqrActiveTopbar)mountTopbar(window._tqrActiveTopbar)}
+async function tqrValidateSavedLogin(){if(_tqrLoginCheckDone)return;_tqrLoginCheckDone=true;if(!tqrNeedsLogin()){document.documentElement.classList.remove('admin-auth-pending');return}const saved=tqrGetSavedLogin();if(!saved){await tqrShowLogin();return}try{const row=await tqrValidateSession(saved);if(!row){localStorage.removeItem(TQR_LOGIN_KEY);await tqrShowLogin();return}const current=tqrSaveLogin(row);tqrShowLoggedInChip(current);tqrRefreshTopbar();tqrApplyAdminGate(current)}catch{localStorage.removeItem(TQR_LOGIN_KEY);await tqrShowLogin()}}
+if((location.pathname.split('/').pop()||'').toLowerCase()==='admin.html')document.documentElement.classList.add('admin-auth-pending');
 window.addEventListener('DOMContentLoaded',()=>setTimeout(tqrValidateSavedLogin,80));
-
-
 
 const TQR_VIEW_KEY = 'tqr_portal_view';
 function getPortalView(){
@@ -124,9 +123,12 @@ function navHtml(active){
     ['buffer','buffer.html','◇','Buffer Stock'],
     ['faulty','faulty.html','!','Faulty Area'],
     ['qrgen','qr.html','⌗','QR Generator'],
-    ['admin','admin.html','⚙','Admin'],
     ['reports','reports.html','▥','Reports']
   ];
+  const session=tqrGetSavedLogin();
+  if(currentView==='testing' && session?.is_admin===true){
+    allItems.splice(allItems.length-1,0,['admin','admin.html','⚙','Admin']);
+  }
   const allowedPublic=new Set(publicAllowedPages());
   const items=currentView==='public' ? allItems.filter(x=>allowedPublic.has(x[0])) : allItems;
   return `<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div>
@@ -145,6 +147,7 @@ function navHtml(active){
   <div class="navright"><span class="live-dot"></span><span class="live-label">Live</span><div class="clockbox"><span id="dateNow"></span><b id="timeNow"></b></div></div>`;
 }
 function mountTopbar(active){
+  window._tqrActiveTopbar=active;
   applyPortalViewClass();
   restrictPublicPage(active);
   const e = $('#topbar'); if(!e) return;

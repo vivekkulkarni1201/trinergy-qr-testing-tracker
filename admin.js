@@ -184,17 +184,44 @@ async function saveSerial(t){
 }
 
 function toggleHtml(id,on,fn){return `<label class="switch"><input type="checkbox" ${on?'checked':''} onchange="${fn}('${id}',this.checked)"><span class="slider"></span></label>`}
-async function loadEngineers(){const d=await table('tqr_engineers');$('#engineerTable').innerHTML=d.map(e=>`<tr><td>${esc(e.engineer_name)}</td><td>${esc(e.employee_id||'—')}</td><td>${toggleHtml(e.id,e.active,'toggleEngineer')}</td><td><label class="admin-role-toggle"><input type="checkbox" ${e.is_admin===true?'checked':''} onchange="setEngineerAdmin('${esc(String(e.employee_id||''))}',this.checked)"><span>${e.is_admin===true?'Admin':'Engineer'}</span></label></td></tr>`).join('')}
+async function loadEngineers(){
+ const d=await table('tqr_engineers');
+ $('#engineerTable').innerHTML=d.map(e=>`<tr>
+   <td>${esc(e.engineer_name)}</td>
+   <td>${esc(e.employee_id||'—')}</td>
+   <td>${toggleHtml(e.id,e.active,'toggleEngineer')}</td>
+   <td><select class="engineer-role-select" onchange="setEngineerRole('${esc(String(e.employee_id||''))}',this.value)">
+     <option value="TESTING" ${e.is_admin===true?'':'selected'}>Testing Engineer</option>
+     <option value="ADMIN" ${e.is_admin===true?'selected':''}>Admin Manager</option>
+   </select></td>
+ </tr>`).join('')
+}
 async function addEngineer(){
- const engineer_name=$('#engName').value.trim(),employee_id=$('#engId').value.trim();if(!engineer_name)return showToast('Enter engineer name');
+ const engineer_name=$('#engName').value.trim(),employee_id=$('#engId').value.trim(),role=$('#engRole')?.value||'TESTING';
+ if(!engineer_name)return showToast('Enter engineer name');
+ if(!employee_id)return showToast('Enter Employee ID');
  const existing=await sb.from('tqr_engineers').select('*').ilike('engineer_name',engineer_name).limit(1);
  let r;if(existing.error)return showToast(existing.error.message);
  if(existing.data?.length)r=await sb.from('tqr_engineers').update({employee_id,active:true}).eq('id',existing.data[0].id);
- else r=await sb.from('tqr_engineers').insert({engineer_name,employee_id,active:true});
- showToast(r.error?r.error.message:'Engineer saved');if(!r.error){$('#engName').value='';$('#engId').value='';loadEngineers()}
+ else r=await sb.from('tqr_engineers').insert({engineer_name,employee_id,active:true,is_admin:false});
+ if(r.error)return showToast(r.error.message);
+ const rr=await setEngineerRole(employee_id,role,true);
+ if(rr===false)return;
+ $('#engName').value='';$('#engId').value='';if($('#engRole'))$('#engRole').value='TESTING';
+ showToast('Engineer saved');await loadEngineers();
 }
 async function toggleEngineer(id,active){const r=await sb.from('tqr_engineers').update({active}).eq('id',id);if(r.error)showToast(r.error.message)}
-async function setEngineerAdmin(employee_id,is_admin){const session=tqrGetSavedLogin();if(!session?.session_token||session?.is_admin!==true)return showToast('Admin access only');const r=await sb.rpc('tqr_set_engineer_admin',{p_session_token:session.session_token,p_target_employee_id:String(employee_id),p_is_admin:!!is_admin});if(r.error)return showToast(r.error.message);showToast(is_admin?'Admin access granted':'Admin access removed');await loadEngineers()}
+async function setEngineerRole(employee_id,role,silent=false){
+ const session=tqrGetSavedLogin();
+ if(!session?.session_token||session?.is_admin!==true){showToast('Admin Manager access only');return false}
+ const is_admin=role==='ADMIN';
+ const r=await sb.rpc('tqr_set_engineer_admin',{p_session_token:session.session_token,p_target_employee_id:String(employee_id),p_is_admin:is_admin});
+ if(r.error){showToast(r.error.message);return false}
+ if(!silent)showToast(is_admin?'Role changed to Admin Manager':'Role changed to Testing Engineer');
+ if(!silent)await loadEngineers();
+ return true;
+}
+async function setEngineerAdmin(employee_id,is_admin){return setEngineerRole(employee_id,is_admin?'ADMIN':'TESTING')}
 
 async function loadBays(){const d=await table('tqr_bays');$('#bayMasterBody').innerHTML=d.sort((a,b)=>a.bay_name.localeCompare(b.bay_name)).map(b=>`<tr><td><input id="bn_${b.id}" value="${esc(b.bay_name)}"></td><td>${b.bay_kind}</td><td>${b.bay_kind==='CORE'?'2 UPS Capacity':'Dedicated'}</td><td>${toggleHtml(b.id,b.active!==false,'toggleBay')}</td><td><button onclick="saveBayName('${b.id}')">Save Name</button></td></tr>`).join('')}
 async function addBay(){const bay_name=$('#newBayName').value.trim(),bay_kind=$('#newBayKind').value;if(!bay_name)return showToast('Enter bay name');const r=await sb.from('tqr_bays').insert({bay_name,bay_kind,active:true});showToast(r.error?r.error.message:'Bay added');if(!r.error){$('#newBayName').value='';loadBays()}}
@@ -238,5 +265,5 @@ async function saveReason(code){const r=await sb.from('tqr_gap_reasons').update(
 async function loadPane(id){({targets:async()=>{await loadTargets();await loadDailyTargets()},opening:loadOpeningCounts,historical:loadHistorical,export:loadExportPane,weekly:loadWeekly,serials:loadSerials,engineers:loadEngineers,bays:loadBays,stages:loadStages,timers:loadTimers,images:loadKpiImages,reasons:loadReasons,history:loadHistory}[id]||(()=>{}))()}
 $('#targetMonth').value=ym();$('#openingMonth').value=ym();$('#openingAsOf').value=new Date().toISOString().slice(0,10);initHistoricalPicker();$('#weekMonth').value=ym();$('#targetMonth').onchange=loadTargets;$('#openingMonth').onchange=loadOpeningCounts;$('#weekMonth').onchange=loadWeekly;$('#weekNo').onchange=loadWeekly;
 $('#saveTargets').onclick=saveTargets;$('#saveDailyTargets').onclick=saveDailyTargets;$('#saveOpeningCounts').onclick=saveOpeningCounts;$('#clearOpeningCounts').onclick=clearOpeningCounts;$('#downloadHistoryExcel').onclick=downloadHistoryExcel;$('#saveHistorical').onclick=saveHistorical;$('#saveWeekly').onclick=saveWeekly;$('#importHistorical').onclick=importHistorical;$('#addEngineer').onclick=addEngineer;$('#addBay').onclick=addBay;$('#addStage').onclick=addStage;$('#saveTimers').onclick=saveTimers;$('#saveOldSerial').onclick=saveOldSerial;$('#addReason').onclick=addReason;$('#searchHistory').onclick=loadHistory;
-Object.assign(window,{saveSerial,updateSerialPreview,toggleEngineer,setEngineerAdmin,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage});
+Object.assign(window,{saveSerial,updateSerialPreview,toggleEngineer,setEngineerAdmin,setEngineerRole,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage});
 showPane('targets');

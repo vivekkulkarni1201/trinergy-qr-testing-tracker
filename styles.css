@@ -953,3 +953,9 @@ html.admin-auth-pending body main{visibility:hidden}
 .admin-role-toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
 .admin-role-toggle input{accent-color:#22cfff;width:18px;height:18px}
 .admin-role-toggle span{font-size:12px;color:#bfe9ff}
+
+
+/* v6.14.23 login stability + role selector */
+.engineer-role-select{min-width:170px;font-weight:750}
+.portal-login-card select{appearance:auto}
+.portal-login-card option{background:#071b2d;color:#fff}

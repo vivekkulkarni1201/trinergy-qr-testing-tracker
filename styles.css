@@ -959,3 +959,54 @@ html.admin-auth-pending body main{visibility:hidden}
 .engineer-role-select{min-width:170px;font-weight:750}
 .portal-login-card select{appearance:auto}
 .portal-login-card option{background:#071b2d;color:#fff}
+
+
+/* v6.14.24 — Monthly Performance Ferrari F1 continuous smoke trail */
+.race-car{
+  overflow:visible!important;
+  isolation:isolate;
+}
+.race-car::before,
+.race-car::after{
+  content:'';
+  position:absolute;
+  left:-28px;
+  bottom:6px;
+  width:52px;
+  height:18px;
+  pointer-events:none;
+  z-index:1;
+  opacity:.0;
+  border-radius:999px;
+  filter:blur(2.2px);
+  transform-origin:right center;
+  background:
+    radial-gradient(circle at 82% 50%, rgba(239,244,250,.46) 0 13%, rgba(239,244,250,.24) 14% 24%, rgba(239,244,250,0) 34%),
+    radial-gradient(circle at 58% 36%, rgba(233,240,247,.36) 0 14%, rgba(233,240,247,.18) 15% 26%, rgba(233,240,247,0) 37%),
+    radial-gradient(circle at 42% 69%, rgba(228,236,245,.32) 0 13%, rgba(228,236,245,.15) 14% 23%, rgba(228,236,245,0) 34%),
+    radial-gradient(circle at 20% 48%, rgba(226,234,244,.28) 0 12%, rgba(226,234,244,.11) 13% 21%, rgba(226,234,244,0) 31%);
+  animation:tqrF1SmokeTrail 1.75s linear infinite;
+}
+.race-car::after{
+  width:44px;
+  height:15px;
+  left:-18px;
+  bottom:12px;
+  opacity:0;
+  animation-delay:.85s;
+}
+@keyframes tqrF1SmokeTrail{
+  0%{transform:translateX(8px) translateY(0) scale(.72);opacity:.08}
+  18%{opacity:.32}
+  42%{opacity:.42}
+  68%{opacity:.24}
+  100%{transform:translateX(-22px) translateY(-2px) scale(1.28);opacity:0}
+}
+@media (max-width:700px){
+  .race-car::before{left:-23px;width:44px;height:15px;bottom:5px}
+  .race-car::after{left:-15px;width:36px;height:12px;bottom:10px}
+}
+@media (max-width:430px){
+  .race-car::before{left:-20px;width:38px;height:13px;bottom:4px}
+  .race-car::after{left:-13px;width:31px;height:10px;bottom:8px}
+}

@@ -941,3 +941,9 @@ body.public-view .metric.stock{display:none!important}
 }
 @media(max-width:700px){.f1-real-car{width:108px!important}}
 @media(max-width:430px){.f1-real-car{width:98px!important}}
+
+
+.portal-login-overlay{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;padding:18px;background:rgba(0,7,13,.88);backdrop-filter:blur(10px)}
+.portal-login-card{width:min(520px,96vw);border:1px solid #27cfff;border-radius:20px;padding:22px;background:linear-gradient(145deg,#092a43,#051521);box-shadow:0 0 42px rgba(26,205,255,.22),inset 0 0 24px rgba(26,205,255,.05)}
+.portal-login-brand{height:74px;margin-bottom:14px}.portal-login-brand img{width:100%;height:100%;object-fit:cover;border-radius:12px}.portal-login-eyebrow{font-size:11px;letter-spacing:1.7px;color:#7edfff;font-weight:900}.portal-login-card h2{font-size:30px;margin:7px 0 5px}.portal-login-card p{color:#b7d7e8;line-height:1.45;margin:0 0 16px}.portal-login-card label{display:block;margin:12px 0;color:#dff5ff;font-weight:700}.portal-login-card select,.portal-login-card input{width:100%;margin-top:6px}.portal-login-card button{width:100%;margin-top:10px;padding:13px;font-size:16px}.portal-login-msg{min-height:24px;margin-top:10px;color:#ffb0b0;font-weight:700}
+.portal-login-chip{position:fixed;right:12px;bottom:12px;z-index:9000;display:flex;align-items:center;gap:8px;padding:7px 8px 7px 11px;border:1px solid #1c7ca8;border-radius:999px;background:rgba(5,27,43,.94);box-shadow:0 0 14px rgba(0,191,255,.16);color:#dff7ff;font-size:12px}.portal-login-chip button{padding:5px 8px!important;min-height:0!important;font-size:11px!important;border-radius:999px!important;background:#15374d!important;border-color:#2c6d92!important}@media(max-width:600px){.portal-login-card{padding:16px}.portal-login-card h2{font-size:25px}.portal-login-chip{right:8px;bottom:8px;max-width:90vw}}

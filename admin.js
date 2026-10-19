@@ -246,7 +246,33 @@ async function saveOldSerial(){
  if(status==='COMPLETED')p.completed_at=d||nowIso();if(status==='STOCK')p.stock_at=d||nowIso();
  const r=await sb.from('tqr_units').insert(p);showToast(r.error?r.error.message:'Till-date UPS added');
 }
-async function loadHistory(){const d=await loadCore(),term=$('#historySearch').value.trim().toLowerCase();let rows=[...d.h].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));if(term)rows=rows.filter(h=>{const u=d.u.find(x=>x.id===h.unit_id);return [u?.serial_number,u?.qr_code,h.stage,h.engineer_name].some(v=>String(v||'').toLowerCase().includes(term))});$('#historyBody').innerHTML=rows.slice(0,200).map(h=>{const u=d.u.find(x=>x.id===h.unit_id);return `<tr><td>${new Date(h.created_at).toLocaleString()}</td><td>${esc(fullSerial(u)||u?.qr_code)}</td><td>${esc(h.stage)}</td><td>${esc(h.engineer_name||'—')}</td><td>${esc(h.result||'')}</td></tr>`}).join('')}
+let _historyData=null;
+function historySerialButton(u){
+ const label=fullSerial(u)||u.serial_number||u.qr_code||'Unassigned QR';
+ const sub=u.serial_number?`${esc(u.current_stage||u.status||'')}`:`QR: ${esc(u.qr_code||'')}`;
+ return `<button type="button" class="history-serial-btn" onclick="showUnitHistory('${u.id}')"><b>${esc(label)}</b><small>${sub}</small></button>`;
+}
+async function loadHistory(){
+ _historyData=await loadCore();
+ const term=String($('#historySearch')?.value||'').trim().toLowerCase();
+ const units=[..._historyData.u].filter(u=>{
+   if(!term)return true;
+   return [fullSerial(u),u.serial_number,u.qr_code,(u.serial_number||'').slice(-4)].some(v=>String(v||'').toLowerCase().includes(term));
+ }).sort((a,b)=>new Date(b.received_at||b.created_at||0)-new Date(a.received_at||a.created_at||0));
+ const put=(type,id)=>{const list=units.filter(u=>u.ups_type===type);const el=$(id);if(el)el.innerHTML=list.length?list.map(historySerialButton).join(''):'<div class="history-none">No matching UPS</div>'};
+ put('3X','#historyList3X');put('2X','#historyList2X');put('STS','#historyListSTS');
+ const detail=$('#historyDetail');if(detail)detail.innerHTML='<div class="history-empty">Select a serial number above to view scan / stage history.</div>';
+}
+function showUnitHistory(unitId){
+ if(!_historyData)return;
+ const u=_historyData.u.find(x=>String(x.id)===String(unitId));if(!u)return;
+ const rows=_historyData.h.filter(h=>String(h.unit_id)===String(unitId)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+ const serial=fullSerial(u)||u.serial_number||u.qr_code||'UPS';
+ const received=`<tr><td>${u.received_at?new Date(u.received_at).toLocaleString():'—'}</td><td>Received</td><td>—</td><td>RECEIVED</td></tr>`;
+ const hist=rows.map(h=>`<tr><td>${new Date(h.created_at).toLocaleString()}</td><td>${esc(h.stage||'—')}</td><td>${esc(h.engineer_name||'—')}</td><td>${esc(h.result||'')}</td></tr>`).join('');
+ $('#historyDetail').innerHTML=`<div class="history-detail-head"><div><small>${esc(u.ups_type)}</small><h3>${esc(serial)}</h3></div><div><span class="history-status">${esc(u.status||'')}</span><span>${esc(u.current_stage||'')}</span></div></div><div class="history-table-wrap"><table class="table history-timeline"><thead><tr><th>Date/Time</th><th>Stage / Movement</th><th>Engineer</th><th>Result</th></tr></thead><tbody>${received}${hist||'<tr><td colspan="4">No stage history recorded yet.</td></tr>'}</tbody></table></div>`;
+}
+
 
 
 async function loadKpiImages(){const r=await sb.from('tqr_ui_assets').select('*');if(r.error)return showToast(r.error.message);for(const type of ['3X','2X','STS']){const row=(r.data||[]).find(x=>x.asset_key==='kpi_'+type);const p=$('#prev'+type);if(p)p.innerHTML=row?.public_url?`<img src="${esc(row.public_url)}" alt="${type}">`:'<span class="muted">No image uploaded</span>'}}
@@ -265,5 +291,5 @@ async function saveReason(code){const r=await sb.from('tqr_gap_reasons').update(
 async function loadPane(id){({targets:async()=>{await loadTargets();await loadDailyTargets()},opening:loadOpeningCounts,historical:loadHistorical,export:loadExportPane,weekly:loadWeekly,serials:loadSerials,engineers:loadEngineers,bays:loadBays,stages:loadStages,timers:loadTimers,images:loadKpiImages,reasons:loadReasons,history:loadHistory}[id]||(()=>{}))()}
 $('#targetMonth').value=ym();$('#openingMonth').value=ym();$('#openingAsOf').value=new Date().toISOString().slice(0,10);initHistoricalPicker();$('#weekMonth').value=ym();$('#targetMonth').onchange=loadTargets;$('#openingMonth').onchange=loadOpeningCounts;$('#weekMonth').onchange=loadWeekly;$('#weekNo').onchange=loadWeekly;
 $('#saveTargets').onclick=saveTargets;$('#saveDailyTargets').onclick=saveDailyTargets;$('#saveOpeningCounts').onclick=saveOpeningCounts;$('#clearOpeningCounts').onclick=clearOpeningCounts;$('#downloadHistoryExcel').onclick=downloadHistoryExcel;$('#saveHistorical').onclick=saveHistorical;$('#saveWeekly').onclick=saveWeekly;$('#importHistorical').onclick=importHistorical;$('#addEngineer').onclick=addEngineer;$('#addBay').onclick=addBay;$('#addStage').onclick=addStage;$('#saveTimers').onclick=saveTimers;$('#saveOldSerial').onclick=saveOldSerial;$('#addReason').onclick=addReason;$('#searchHistory').onclick=loadHistory;
-Object.assign(window,{saveSerial,updateSerialPreview,toggleEngineer,setEngineerAdmin,setEngineerRole,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage});
+Object.assign(window,{saveSerial,updateSerialPreview,toggleEngineer,setEngineerAdmin,setEngineerRole,toggleBay,saveBayName,toggleStage,saveStage,uploadKpiImage,showUnitHistory});
 showPane('targets');

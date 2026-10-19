@@ -25,6 +25,7 @@ function kpiHtml(type, cls){
   const metrics=[
     ['target','🎯 Target',c.target],
     ['received','▣ Received',c.received],
+    ['queue','⌛ Waiting Testing',c.queue||0],
     ['completed','✓ Completed',c.completed],
     ['testing','⚙ Under Testing',c.under]
   ];
@@ -60,7 +61,9 @@ function renderPerformance(){
     const pending=Math.max(0,c.target-c.completed);
     const cls=t==='3X'?'race-blue':t==='2X'?'race-green':'race-purple';
     const carPos=6+(Math.max(0,Math.min(100,p))*0.86);
-    return `<div class="race-row ${cls}">
+    const winner=c.target>0 && c.completed>=c.target;
+    const celebration=winner?`<div class="race-celebration" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="champagne-spray"></span></div>`:'';
+    return `<div class="race-row ${cls} ${winner?'race-winner':''}">
       <div class="race-type">
         <span class="race-type-name">${t}</span>
         <small>TRINERGY</small>
@@ -71,7 +74,7 @@ function renderPerformance(){
           <div class="race-progress" style="width:${p}%"></div>
           <div class="race-dashes"></div>
           <div class="race-car" data-progress="${p}" style="left:${carPos.toFixed(2)}%">${racingCarSvg()}</div>
-          <div class="race-finish">
+          <div class="race-finish">${celebration}
   <svg class="race-chequered-flag" viewBox="0 0 52 38" aria-label="finish flag" role="img">
     <g class="flag-wave">
       <path class="flag-bg" d="M7 5 C17 1, 27 9, 43 4 L43 25 C29 29, 20 20, 7 25 Z"/>

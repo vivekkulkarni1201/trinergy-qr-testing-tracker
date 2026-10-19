@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.24';
+const TQR_APP_VERSION = 'v6.14.25';
 
 /* v6.14.22 — secure persistent engineer session + admin role */
 const TQR_LOGIN_KEY='tqr_engineer_portal_session';
@@ -167,17 +167,18 @@ async function table(name, select='*'){
   return r.data || [];
 }
 async function loadCore(){
-  const [u,t,b,o,h,st,op]=await Promise.all([
+  const [u,t,b,o,h,st,op,hist]=await Promise.all([
     table('tqr_units'),
     table('tqr_monthly_targets'),
     table('tqr_bays'),
     table('tqr_bay_occupancy'),
     table('tqr_stage_history'),
     table('tqr_stage_state'),
-    table('tqr_month_opening_counts')
+    table('tqr_month_opening_counts'),
+    table('tqr_historical_months')
   ]);
   const sm=Object.fromEntries(st.map(x=>[x.unit_id,x]));u.forEach(x=>x.tqr_stage_state=sm[x.id]||null);
-  return {u,t,b,o:o.filter(x=>!x.released_at),h,st,op};
+  return {u,t,b,o:o.filter(x=>!x.released_at),h,st,op,hist};
 }
 function monthOf(v){ return v ? String(v).slice(0,7) : ''; }
 function openingCounts(data,type,m){
@@ -186,21 +187,23 @@ function openingCounts(data,type,m){
 }
 function counts(data,type,m){
   const arr = data.u.filter(x=>x.ups_type===type);
-  const target = Number(data.t.find(x=>x.ups_type===type && monthOf(x.month_start)===m)?.target || 0);
+  const currentMonth=ym();
+  const historical=(data.hist||[]).find(x=>x.ups_type===type && monthOf(x.month_start)===m);
+  // Closed/past months should use the historical monthly summary when it exists.
+  if(m<currentMonth && historical){
+    const target=Number(historical.target||0),received=Number(historical.received||0),completed=Number(historical.completed||0);
+    return {target,received,completed,openingReceived:0,openingCompleted:0,liveReceived:0,liveCompleted:0,under:0,stock:0,queue:Math.max(0,received-completed)};
+  }
+  const target = Number(data.t.find(x=>x.ups_type===type && monthOf(x.month_start)===m)?.target || historical?.target || 0);
   const opening=openingCounts(data,type,m);
   const liveReceived=arr.filter(x=>monthOf(x.received_at)===m).length;
   const liveCompleted=arr.filter(x=>x.status==='COMPLETED' && monthOf(x.completed_at)===m).length;
-  return {
-    target,
-    received: opening.received + liveReceived,
-    completed: opening.completed + liveCompleted,
-    openingReceived: opening.received,
-    openingCompleted: opening.completed,
-    liveReceived,
-    liveCompleted,
-    under: arr.filter(x=>x.status==='UNDER_TESTING').length,
-    stock: arr.filter(x=>x.status==='STOCK').length
-  };
+  const received=opening.received + liveReceived;
+  const completed=opening.completed + liveCompleted;
+  const under=arr.filter(x=>x.status==='UNDER_TESTING').length;
+  const stock=arr.filter(x=>x.status==='STOCK').length;
+  const queue=arr.filter(x=>x.status==='RECEIVED' || (!x.serial_number && String(x.current_stage||'').toLowerCase().includes('received'))).length;
+  return {target,received,completed,openingReceived:opening.received,openingCompleted:opening.completed,liveReceived,liveCompleted,under,stock,queue};
 }
 function activeOcc(data,bayId,section){ return data.o.find(x=>x.bay_id===bayId && x.section===section); }
 function unitForOcc(data,o){ return o && data.u.find(u=>u.id===o.unit_id); }

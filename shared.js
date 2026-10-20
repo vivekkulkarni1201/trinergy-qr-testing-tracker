@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.25';
+const TQR_APP_VERSION = 'v6.14.26';
 
 /* v6.14.22 — secure persistent engineer session + admin role */
 const TQR_LOGIN_KEY='tqr_engineer_portal_session';
@@ -192,7 +192,7 @@ function counts(data,type,m){
   // Closed/past months should use the historical monthly summary when it exists.
   if(m<currentMonth && historical){
     const target=Number(historical.target||0),received=Number(historical.received||0),completed=Number(historical.completed||0);
-    return {target,received,completed,openingReceived:0,openingCompleted:0,liveReceived:0,liveCompleted:0,under:0,stock:0,queue:Math.max(0,received-completed)};
+    return {target,received,completed,openingReceived:0,openingCompleted:0,liveReceived:0,liveCompleted:0,under:0,stock:0,faulty:0,queue:Math.max(0,received-completed)};
   }
   const target = Number(data.t.find(x=>x.ups_type===type && monthOf(x.month_start)===m)?.target || historical?.target || 0);
   const opening=openingCounts(data,type,m);
@@ -202,8 +202,9 @@ function counts(data,type,m){
   const completed=opening.completed + liveCompleted;
   const under=arr.filter(x=>x.status==='UNDER_TESTING').length;
   const stock=arr.filter(x=>x.status==='STOCK').length;
+  const faulty=arr.filter(x=>x.status==='RTA').length;
   const queue=arr.filter(x=>x.status==='RECEIVED' || (!x.serial_number && String(x.current_stage||'').toLowerCase().includes('received'))).length;
-  return {target,received,completed,openingReceived:opening.received,openingCompleted:opening.completed,liveReceived,liveCompleted,under,stock,queue};
+  return {target,received,completed,openingReceived:opening.received,openingCompleted:opening.completed,liveReceived,liveCompleted,under,stock,faulty,queue};
 }
 function activeOcc(data,bayId,section){ return data.o.find(x=>x.bay_id===bayId && x.section===section); }
 function unitForOcc(data,o){ return o && data.u.find(u=>u.id===o.unit_id); }

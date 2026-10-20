@@ -30,7 +30,9 @@ function kpiHtml(type, cls){
     ['testing','⚙ Under Testing',c.under]
   ];
   if(!isPublicPortalView()) metrics.push(['stock','◇ Buffer Stock',c.stock]);
+  const faultyBadge=!isPublicPortalView()?`<div class="kpi-fault-badge" title="Currently Faulty / RTA: ${c.faulty||0}" aria-label="Faulty ${c.faulty||0}"><span>!</span><b>${c.faulty||0}</b></div>`:'';
   return `<div class="kpi ${cls}">
+    ${faultyBadge}
     <div class="kpi-top">
       <div class="kpi-title"><h1>${type}</h1><b>TRINERGY ${type==='3X'?'T3X':type==='2X'?'T2X':'STS'}</b></div>
       <div class="donut" style="--pct:${Math.min(100,p)}"><div><strong>${p}%</strong><small>Completed</small></div></div>

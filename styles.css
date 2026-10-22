@@ -1107,3 +1107,30 @@ html.admin-auth-pending body main{visibility:hidden}
   .kpi-stats .metric span{font-size:8.5px!important;min-height:24px!important}
   .kpi-stats .metric b{font-size:18px!important}
 }
+
+
+/* v6.14.28 — authenticated engineer display */
+.engineer-auth-box{display:flex!important;flex-direction:column;gap:6px;min-width:220px;padding:10px 12px;border:1px solid #1d6f95;border-radius:10px;background:#071d2d}
+.engineer-auth-box span{font-size:10px;letter-spacing:.6px;color:#7fb8d5;text-transform:uppercase}
+.engineer-auth-box strong{font-size:15px;color:#e7f8ff}
+
+/* v6.14.28 — Faulty Area mobile responsive cards */
+@media(max-width:700px){
+  .faulty-page main{padding-bottom:92px!important}
+  .faulty-page .panel-body{padding:10px!important;overflow:visible!important}
+  .faulty-page table.table{display:block;width:100%;min-width:0!important}
+  .faulty-page table.table thead{display:none!important}
+  .faulty-page #faultBody{display:block;width:100%}
+  .faulty-page #faultBody tr{display:block!important;width:100%!important;box-sizing:border-box!important;margin:0 0 12px!important;padding:12px!important;border:1px solid #176d98!important;border-radius:14px!important;background:linear-gradient(145deg,#08243a,#061827)!important;box-shadow:inset 0 0 18px rgba(0,159,235,.05)!important}
+  .faulty-page #faultBody td{display:grid!important;grid-template-columns:92px minmax(0,1fr)!important;align-items:start!important;gap:8px!important;width:100%!important;box-sizing:border-box!important;padding:8px 0!important;border:0!important;border-bottom:1px solid rgba(63,126,158,.22)!important;white-space:normal!important;word-break:break-word!important;text-align:left!important;min-width:0!important}
+  .faulty-page #faultBody td::before{content:attr(data-label);font-size:10px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;color:#79badb;padding-top:3px}
+  .faulty-page #faultBody td.faulted-serial{font-size:15px!important;color:#ffb31a!important}
+  .faulty-page #faultBody td.fault-reentry-cell{display:flex!important;flex-direction:column!important;gap:8px!important;padding-top:12px!important;border-bottom:0!important}
+  .faulty-page #faultBody td.fault-reentry-cell::before{display:block!important;content:'Re-entry';margin-bottom:1px;font-size:10px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;color:#79badb}
+  .faulty-page #faultBody select,.faulty-page #faultBody button{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important}
+  .faulty-page #faultBody select{height:42px!important;padding:8px 10px!important}
+  .faulty-page #faultBody .fault-bay-select{min-width:0!important}
+  .faulty-page #faultBody button.danger{min-height:46px!important;font-size:13px!important;line-height:1.2!important;white-space:normal!important}
+  .faulty-page .portal-login-chip{max-width:calc(100vw - 24px)!important;right:12px!important;bottom:10px!important}
+  .engineer-auth-box{min-width:0!important;width:100%!important;margin-top:8px}
+}

@@ -1,5 +1,5 @@
 
-mountTopbar('faulty');let units=[],coreData=null;
+mountTopbar('faulty');document.body.classList.add('faulty-page');let units=[],coreData=null;
 function stageOptions(u){
  if(u.ups_type==='STS')return [['STS_TEST','STS Test'],['STS_HEATRUN','STS Heatrun'],['PARAMETERS_480V','480V / Parameters']];
  const a=[['LV','LV / Hi-Pot'],['HV','HV Testing'],['CORE_HEATRUN','Core Heatrun'],['BOOSTER_1','Booster 1'],['BOOSTER_2','Booster 2']];
@@ -18,7 +18,7 @@ function fillBay(id){
 }
 async function boot(){
  coreData=await loadCore();units=coreData.u.filter(u=>u.status==='RTA');
- $('#faultBody').innerHTML=units.map(u=>`<tr><td class="faulted-serial">${esc(u.serial_number||u.qr_code)}</td><td>${u.ups_type}</td><td>${u.faulted_at?new Date(u.faulted_at).toLocaleString():'—'}</td><td>${esc(u.current_stage)}</td><td><select id="rs_${u.id}" onchange="fillBay('${u.id}')">${stageOptions(u).map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><select id="rb_${u.id}" class="fault-bay-select"></select><button class="danger" onclick="reenter('${u.id}')">RE-ENTER TESTING</button></td></tr>`).join('')||'<tr><td colspan="5">No faulty UPS.</td></tr>';
+ $('#faultBody').innerHTML=units.map(u=>`<tr><td data-label="Serial" class="faulted-serial">${esc(u.serial_number||u.qr_code)}</td><td data-label="Type">${u.ups_type}</td><td data-label="Faulted At">${u.faulted_at?new Date(u.faulted_at).toLocaleString():'—'}</td><td data-label="Last Stage">${esc(u.current_stage)}</td><td data-label="Re-entry" class="fault-reentry-cell"><select id="rs_${u.id}" onchange="fillBay('${u.id}')">${stageOptions(u).map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><select id="rb_${u.id}" class="fault-bay-select"></select><button class="danger" onclick="reenter('${u.id}')">RE-ENTER TESTING</button></td></tr>`).join('')||'<tr><td colspan="5">No faulty UPS.</td></tr>';
  units.forEach(u=>fillBay(u.id));
 }
 async function reenter(id){
@@ -80,7 +80,7 @@ async function reenter(id){
    showToast('Re-entry cancelled — UPS state changed');
    return boot();
  }
- await sb.from('tqr_stage_history').insert({unit_id:id,action:'RE-ENTRY',stage:label,result:'IN_PROGRESS'});
+ try{await tqrAuditLog(id,'RE-ENTRY',label,'IN_PROGRESS')}catch(e){return showToast(e.message||'Audit log failed')}
  showToast('UPS moved out of Faulty Area and re-entered testing');
  await boot();
 }

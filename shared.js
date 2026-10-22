@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.27';
+const TQR_APP_VERSION = 'v6.14.28';
 
 /* v6.14.22 — secure persistent engineer session + admin role */
 const TQR_LOGIN_KEY='tqr_engineer_portal_session';
@@ -14,6 +14,28 @@ function tqrGetSavedLogin(){try{const x=JSON.parse(localStorage.getItem(TQR_LOGI
 function tqrSaveLogin(row){const x={session_token:String(row.session_token||''),name:String(row.engineer_name||row.name||'').trim(),is_admin:row.is_admin===true,saved_at:Date.now()};localStorage.setItem(TQR_LOGIN_KEY,JSON.stringify(x));return x}
 async function tqrLogout(){const x=tqrGetSavedLogin();try{if(x?.session_token)await sb.rpc('tqr_engineer_logout',{p_session_token:x.session_token})}catch{}try{localStorage.removeItem(TQR_LOGIN_KEY)}catch{}location.reload()}
 window.tqrLogout=tqrLogout;
+
+/* v6.14.28 — stage audit is always stamped from the authenticated portal session */
+function tqrLoggedEngineer(){
+  const s=tqrGetSavedLogin();
+  return s?.session_token ? {session_token:s.session_token,name:String(s.name||'').trim(),is_admin:s.is_admin===true} : null;
+}
+async function tqrAuditLog(unitId,action,stage,result='PASS',notes=null){
+  const login=tqrLoggedEngineer();
+  if(!login?.session_token) throw new Error('Engineer login required');
+  const r=await sb.rpc('tqr_log_stage_event',{
+    p_session_token:login.session_token,
+    p_unit_id:unitId,
+    p_action:String(action||''),
+    p_stage:String(stage||''),
+    p_result:String(result||'PASS'),
+    p_notes:notes==null?null:String(notes)
+  });
+  if(r.error) throw r.error;
+  return true;
+}
+window.tqrLoggedEngineer=tqrLoggedEngineer;
+window.tqrAuditLog=tqrAuditLog;
 function tqrNeedsLogin(){return getPortalView()==='testing'}
 function tqrLoginOverlay(){window._tqrAuthBusy=true;let o=document.querySelector('.portal-login-overlay');if(o)return o;o=document.createElement('div');o.className='portal-login-overlay';o.innerHTML=`<div class="portal-login-card"><div class="portal-login-brand"><img src="trinergy-brand-banner.png" alt="TRINERGY"></div><div class="portal-login-eyebrow">AUTHORIZED PERSONNEL ONLY</div><h2>Engineer Login</h2><p>Login once on this browser. Your login stays remembered until Logout or Admin disables your account.</p><label>Engineer Name<select id="portalLoginEngineer"><option>Loading engineers…</option></select></label><label>Password<input id="portalLoginId" type="password" autocomplete="current-password" placeholder="Enter Employee ID"><small class="portal-login-hint">Your Employee ID is your password.</small></label><button type="button" id="portalLoginBtn">Login to Trinergy Tracker</button><div id="portalLoginMsg" class="portal-login-msg"></div></div>`;document.body.appendChild(o);return o}
 async function tqrEngineerNames(){const r=await sb.rpc('tqr_engineer_names');if(r.error)throw r.error;return(r.data||[]).map(x=>String(x.engineer_name||'').trim()).filter(Boolean)}

@@ -4,7 +4,7 @@ async function finish(id){
  const now=nowIso();
  let r=await sb.from('tqr_units').update({status:'COMPLETED',current_stage:'TO FINISHING / COMPLETED',completed_at:now}).eq('id',id);
  if(r.error)return showToast(r.error.message);
- await sb.from('tqr_stage_history').insert({unit_id:id,action:'EXIT',stage:'TO FINISHING FROM STOCK',result:'PASS'});
+ try{await tqrAuditLog(id,'EXIT','TO FINISHING FROM STOCK','PASS')}catch(e){return showToast(e.message||'Audit log failed')}
  showToast('Moved to Finishing'); boot();
 }
 async function boot(){

@@ -2,10 +2,6 @@
 mountScanHeader();
 let current=null,currentEngineer=null,timerTicker=null,_scanStateSig='';
 
-async function engineers(){
-  const r=await sb.from('tqr_engineers').select('*').eq('active',true).order('engineer_name');
-  if(r.error)throw r.error; return r.data||[];
-}
 async function liveUnits(){
   const r=await sb.from('tqr_units').select('*').in('status',['RECEIVED','UNDER_TESTING']).order('received_at');
   if(r.error)throw r.error; return r.data||[];
@@ -13,18 +9,12 @@ async function liveUnits(){
 async function loadDropdown(){
   const el=$('#liveUps'); if(!el)return;
   const old=el.value,list=await liveUnits();
-  el.innerHTML='<option value="">Select Live UPS...</option>'+list.map(u=>`<option value="${esc(u.qr_code)}">${esc(fullSerial(u)||u.qr_code)} · ${u.ups_type} · ${esc(u.current_stage||u.status)}</option>`).join('');
+  el.innerHTML='<option value="">Select Live UPS...</option>'+list.map(u=>`<option value="${esc(u.qr_code)}">${esc(u.serial_number||u.qr_code)} · ${u.ups_type} · ${esc(u.current_stage||u.status)}</option>`).join('');
   if([...el.options].some(o=>o.value===old))el.value=old;
 }
 function sstate(){return stateOf(current)||{}}
 function runningHeat(st=sstate()){return ['core_heatrun','booster_1','booster_2','booster_3'].find(k=>st[k+'_started']&&!st[k+'_passed'])||null}
 function heatDone(st,u){return !!st.core_heatrun_passed&&(u.ups_type==='STS'||(st.booster_1_passed&&st.booster_2_passed&&(u.ups_type!=='3X'||st.booster_3_passed)))}
-async function lastEngineerForUnit(){
-  if(!current)return null;
-  const r=await sb.from('tqr_stage_history').select('engineer_id,engineer_name,created_at').eq('unit_id',current.id).not('engineer_name','is',null).order('created_at',{ascending:false}).limit(1);
-  if(!r.error&&r.data?.length)return {id:r.data[0].engineer_id,name:r.data[0].engineer_name};
-  try{return JSON.parse(localStorage.getItem('tqr_last_engineer')||'null')}catch{return null}
-}
 async function activeOccupancy(){
   if(!current)return null;
   const r=await sb.from('tqr_bay_occupancy').select('*,tqr_bays(*)').eq('unit_id',current.id).is('released_at',null).maybeSingle();
@@ -51,17 +41,23 @@ function renderNew(code){
   $('#unitbox').innerHTML=`<div class="panel"><div class="panel-body mobile-new"><span class="eyebrow">NEW QR</span><h2>${esc(code)}</h2><p>First scan records Received only.</p><div class="receive-grid">${['3X','2X','STS'].map(t=>`<button onclick="receive('${t}')">${t}<small>Receive UPS</small></button>`).join('')}</div></div></div>`;
 }
 async function receive(type){
+  if(!needEng())return;
   const code=$('#qr').value.trim();
   let r=await sb.from('tqr_units').insert({qr_code:code,ups_type:type,status:'RECEIVED',current_stage:'RECEIVED'});
   if(r.error)return showToast(r.error.message);
   const u=(await sb.from('tqr_units').select('id').eq('qr_code',code).single()).data;
-  await sb.from('tqr_stage_history').insert({unit_id:u.id,action:'RECEIVED',stage:'RECEIVED',result:'PASS'});
+  try{await tqrAuditLog(u.id,'RECEIVED','RECEIVED','PASS')}catch(e){return showToast(e.message||'Audit log failed')}
   showToast(type+' received');await openQR();await loadDropdown();
 }
 async function log(action,stage,result='PASS',notes=null){
-  await sb.from('tqr_stage_history').insert({unit_id:current.id,action,stage,result,engineer_id:currentEngineer?.id||null,engineer_name:currentEngineer?.name||null,notes});
+  await tqrAuditLog(current.id,action,stage,result,notes);
 }
-function needEng(){if(!currentEngineer){showToast('Select ACTIVE engineer first');return false}return true}
+function needEng(){
+  const login=tqrLoggedEngineer();
+  currentEngineer=login?{name:login.name}:null;
+  if(!currentEngineer){showToast('Engineer login required');return false}
+  return true;
+}
 function isCompleted(){return !!current&&current.status==='COMPLETED'}
 function blockCompleted(){
   if(!isCompleted())return false;
@@ -132,7 +128,7 @@ async function renderUnit(){
     $('#unitbox').innerHTML=`<div class="panel unit-card completed-terminal">
       <div class="completed-lock-icon">✓</div>
       <span class="eyebrow">${esc(current.qr_code)}</span>
-      <div class="serial-big${faultSerialClass(current)}">${esc(fullSerial(current)||'Serial')} <small>• ${current.ups_type}</small></div>
+      <div class="serial-big${faultSerialClass(current)}">${esc(current.serial_number||'Serial')} <small>• ${current.ups_type}</small></div>
       <h2>UPS COMPLETED</h2>
       <p>This UPS has already been marked Completed and is permanently closed for testing updates.</p>
       <div class="completed-meta"><span>Status <b>COMPLETED</b></span><span>Completed At <b>${esc(doneAt)}</b></span></div>
@@ -141,16 +137,17 @@ async function renderUnit(){
     </div>`;
     return;
   }
-  const st=sstate(),eng=await engineers(),last=await lastEngineerForUnit(),occ=await activeOccupancy(),run=runningHeat(st);
-  if(last&&eng.some(e=>e.id===last.id||e.engineer_name===last.name))currentEngineer=last;
+  const st=sstate(),occ=await activeOccupancy(),run=runningHeat(st);
+  const login=tqrLoggedEngineer();
+  currentEngineer=login?{name:login.name}:null;
   const isStock=current.status==='STOCK';
   const bayName=occ?.tqr_bays?.bay_name||'No Bay Allocated';
   const steps=current.ups_type==='STS'
     ? [['Received',true],['STS Test',!!st.hv_passed],['STS Heatrun',!!st.core_heatrun_passed],['480V',!!st.parameters_480v_saved],['Buffer Stock',isStock],['Completed',current.status==='COMPLETED']]
     : [['Received',true],['LV',!!st.lv_passed],['Hi-Pot',!!st.hipot_passed],['HV',!!st.hv_passed],['Heatrun',heatDone(st,current)],['480V',!!st.parameters_480v_saved],['Buffer Stock',isStock],['Completed',current.status==='COMPLETED']];
   $('#unitbox').innerHTML=`<div class="panel unit-card stage-console">
-    <div class="unit-head mobile-unit-head"><div><span class="eyebrow">${esc(current.qr_code)}</span><div class="serial-big${faultSerialClass(current)}">${esc(fullSerial(current)||'Serial pending')} <small>• ${current.ups_type}</small></div><div class="current-stage-pill">${esc(current.current_stage||current.status)}</div><div class="bay-pill ${occ?'allocated':'missing'}">▦ ${esc(bayName)}</div></div>
-    <label class="engineer-box">Authorized Engineer<select id="engineer"><option value="">Select Engineer</option>${eng.map(e=>`<option value="${e.id}" data-name="${esc(e.engineer_name)}" ${(currentEngineer&&(currentEngineer.id===e.id||currentEngineer.name===e.engineer_name))?'selected':''}>${esc(e.engineer_name)}${e.employee_id?' · '+esc(e.employee_id):''}</option>`).join('')}</select></label></div>
+    <div class="unit-head mobile-unit-head"><div><span class="eyebrow">${esc(current.qr_code)}</span><div class="serial-big${faultSerialClass(current)}">${esc(current.serial_number||'Serial pending')} <small>• ${current.ups_type}</small></div><div class="current-stage-pill">${esc(current.current_stage||current.status)}</div><div class="bay-pill ${occ?'allocated':'missing'}">▦ ${esc(bayName)}</div></div>
+    <div class="engineer-box engineer-auth-box"><span>Authenticated Engineer</span><strong>👤 ${esc(currentEngineer?.name||'Login required')}</strong></div></div>
     ${run?`<div class="timer-lock"><b>⏱ Timed Event Running</b><span>${timedEventLabel(run)} is active. Pending stages are locked. Only timer completion or Fault is allowed.</span></div>`:''}
     ${!occ&&current.status==='UNDER_TESTING'&&!current.parked?`<div class="bay-warning"><b>⚠ NO PHYSICAL BAY ALLOCATION</b><span>Stage changes are blocked until a compatible bay is assigned.</span></div>`:''}
     ${isStock?`<div class="buffer-banner"><b>◇ BUFFER STOCK</b><span>Testing is complete. Only Completed is available.</span></div>`:''}
@@ -158,7 +155,6 @@ async function renderUnit(){
     ${current.status==='RTA'?`<div class="fault-banner"><b>! FAULTY AREA</b><span>Use Faulty Area for controlled re-entry.</span></div>`:''}
     <div class="steps mobile-steps">${steps.map(x=>{const locked=!!run&&!x[1]&&!['STS Heatrun','Heatrun'].includes(x[0]);return `<div class="step ${x[1]?'done':''} ${locked?'stage-locked':''}">${x[1]?'✓ ':locked?'🔒 ':''}${x[0]}</div>`}).join('')}</div>
     <div id="actions" class="actions stage-actions"></div></div>`;
-  $('#engineer').onchange=e=>{const o=e.target.selectedOptions[0];currentEngineer=e.target.value?{id:e.target.value,name:o.dataset.name}:null;if(currentEngineer)localStorage.setItem('tqr_last_engineer',JSON.stringify(currentEngineer));renderActions(occ)};
   renderActions(occ);
 }
 function renderActions(occ){
@@ -210,18 +206,7 @@ async function startTesting(){
   if(blockCompleted())return;
   if(!needEng())return;
   let pick=current.ups_type==='STS'?await chooseStsBay('STS_TEST'):await chooseCoreBay();if(!pick)return;
-  if(!current.serial_number){
-    const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});
-    if(r.error)return showToast(r.error.message);
-    const rr=await sb.from('tqr_units').select('*').eq('id',current.id).single();
-    if(!rr.error&&rr.data){
-      const fs=fullSerial(rr.data);
-      if(fs&&fs!==rr.data.serial_number){
-        const ur=await sb.from('tqr_units').update({serial_number:fs}).eq('id',current.id);
-        if(ur.error)return showToast(ur.error.message);
-      }
-    }
-  }
+  if(!current.serial_number){const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});if(r.error)return showToast(r.error.message)}
   if(!await assignOccupancy(pick))return;
   const now=nowIso(),stage=current.ups_type==='STS'?'STS TESTING IN PROGRESS':'LV TESTING IN PROGRESS';
   await sb.from('tqr_units').update({status:'UNDER_TESTING',current_stage:stage,testing_started_at:now}).eq('id',current.id);

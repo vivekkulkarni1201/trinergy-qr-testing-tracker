@@ -1,29 +1,50 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
 <defs>
-  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7e9fb7"/><stop offset=".55" stop-color="#91a9b8"/><stop offset="1" stop-color="#667f8d"/></linearGradient>
-  <linearGradient id="grass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#385d43"/><stop offset="1" stop-color="#244332"/></linearGradient>
-  <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#66717a"/><stop offset="1" stop-color="#323b44"/></linearGradient>
-  <filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb8d1"/><stop offset=".46" stop-color="#9fc0d1"/><stop offset="1" stop-color="#6e8998"/></linearGradient>
+  <linearGradient id="grass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#47704f"/><stop offset="1" stop-color="#294b35"/></linearGradient>
+  <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#727d85"/><stop offset="1" stop-color="#252d33"/></linearGradient>
+  <linearGradient id="wall" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d8e2e8"/><stop offset="1" stop-color="#b7c4cc"/></linearGradient>
+  <filter id="soft"><feGaussianBlur stdDeviation="1.1"/></filter>
+  <filter id="shadow"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity=".28"/></filter>
 </defs>
 <rect width="1920" height="1080" fill="url(#sky)"/>
-<path d="M0 435 C210 385 400 420 575 380 C760 338 918 353 1105 322 C1330 285 1580 300 1920 255 L1920 1080 L0 1080 Z" fill="url(#grass)"/>
-<g opacity=".75" fill="#183626">
-  <path d="M0 360 C150 322 300 344 455 310 C620 273 760 296 906 270 L906 408 L0 495Z"/>
-  <path d="M1080 255 C1280 205 1450 235 1590 203 C1740 170 1850 180 1920 166 L1920 340 L1080 360Z"/>
+<!-- distant hills/trees -->
+<path d="M0 350 C150 300 260 324 410 292 C610 248 710 285 890 250 C1080 214 1260 236 1430 205 C1610 174 1780 190 1920 155 L1920 465 L0 505Z" fill="#244936" opacity=".92"/>
+<path d="M0 410 C170 360 300 390 470 350 C650 310 835 340 1015 300 C1215 256 1430 298 1610 255 C1750 223 1850 230 1920 214 L1920 555 L0 560Z" fill="url(#grass)" opacity=".96"/>
+<!-- grandstands -->
+<g opacity=".84" filter="url(#shadow)">
+  <path d="M70 410 L520 355 L544 432 L96 478Z" fill="#ced9df"/>
+  <path d="M92 394 L496 346 L512 372 L107 422Z" fill="#263944"/>
+  <g fill="#9e2529"><rect x="118" y="385" width="42" height="12" transform="rotate(-6 118 385)"/><rect x="174" y="378" width="42" height="12" transform="rotate(-6 174 378)"/><rect x="230" y="371" width="42" height="12" transform="rotate(-6 230 371)"/><rect x="286" y="364" width="42" height="12" transform="rotate(-6 286 364)"/><rect x="342" y="357" width="42" height="12" transform="rotate(-6 342 357)"/></g>
+  <path d="M1390 300 L1815 260 L1827 328 L1404 361Z" fill="#d2dbe0"/>
+  <path d="M1410 285 L1794 249 L1805 276 L1420 311Z" fill="#263944"/>
 </g>
-<g opacity=".6" fill="#b8c5cc">
-  <rect x="112" y="430" width="360" height="34" rx="5"/><rect x="126" y="402" width="26" height="27"/><rect x="160" y="394" width="26" height="35"/><rect x="194" y="398" width="26" height="31"/><rect x="228" y="390" width="26" height="39"/><rect x="262" y="396" width="26" height="33"/><rect x="296" y="392" width="26" height="37"/>
-  <rect x="1430" y="315" width="365" height="30" rx="5"/><rect x="1460" y="282" width="25" height="32"/><rect x="1495" y="274" width="25" height="40"/><rect x="1530" y="278" width="25" height="36"/><rect x="1565" y="268" width="25" height="46"/><rect x="1600" y="276" width="25" height="38"/><rect x="1635" y="270" width="25" height="44"/>
+<!-- barriers -->
+<path d="M0 560 C310 510 470 518 710 496 C930 476 1130 420 1390 415 C1620 410 1795 450 1920 430" fill="none" stroke="url(#wall)" stroke-width="32"/>
+<path d="M0 560 C310 510 470 518 710 496 C930 476 1130 420 1390 415 C1620 410 1795 450 1920 430" fill="none" stroke="#c92f34" stroke-width="7" stroke-dasharray="72 38" opacity=".95"/>
+<!-- main Imola-style S curve -->
+<path d="M-150 990 C170 785 405 805 645 765 C900 724 1034 573 1282 559 C1494 547 1696 650 2070 512" fill="none" stroke="#eef2f4" stroke-width="230" stroke-linecap="round"/>
+<path d="M-150 990 C170 785 405 805 645 765 C900 724 1034 573 1282 559 C1494 547 1696 650 2070 512" fill="none" stroke="url(#road)" stroke-width="192" stroke-linecap="round"/>
+<path d="M-150 990 C170 785 405 805 645 765 C900 724 1034 573 1282 559 C1494 547 1696 650 2070 512" fill="none" stroke="#f7fafb" stroke-width="4" stroke-dasharray="44 40" opacity=".86"/>
+<!-- kerbs -->
+<path d="M-50 922 C208 769 416 786 650 750" fill="none" stroke="#fff" stroke-width="28" stroke-dasharray="44 28"/>
+<path d="M-50 922 C208 769 416 786 650 750" fill="none" stroke="#d43b3f" stroke-width="28" stroke-dasharray="44 28" stroke-dashoffset="36"/>
+<path d="M1275 548 C1498 539 1710 643 1970 547" fill="none" stroke="#fff" stroke-width="28" stroke-dasharray="44 28"/>
+<path d="M1275 548 C1498 539 1710 643 1970 547" fill="none" stroke="#d43b3f" stroke-width="28" stroke-dasharray="44 28" stroke-dashoffset="36"/>
+<!-- pit straight accent -->
+<path d="M1030 688 L1510 650" stroke="#dfe7eb" stroke-width="52" opacity=".36"/>
+<path d="M1030 688 L1510 650" stroke="#333d44" stroke-width="38" opacity=".8"/>
+<text x="1095" y="835" font-size="132" font-family="Arial Black,Arial,sans-serif" font-weight="900" fill="#fff" opacity=".78" transform="rotate(-7 1095 835)">IMOLA</text>
+<!-- subtle red race car silhouette -->
+<g transform="translate(1450 640) scale(1.05)" opacity=".78" filter="url(#shadow)">
+  <ellipse cx="0" cy="44" rx="115" ry="22" fill="#111" opacity=".28"/>
+  <path d="M-106 20 L-64 10 L-28 -6 L33 -6 L68 7 L104 13 L116 28 L88 31 L68 24 L-62 25 L-84 34 L-112 32Z" fill="#d71920"/>
+  <path d="M-42 8 L-16 -13 L28 -12 L49 4 L35 10 L-34 11Z" fill="#6f0b0d"/>
+  <circle cx="-72" cy="30" r="18" fill="#101417"/><circle cx="74" cy="28" r="18" fill="#101417"/>
+  <circle cx="-72" cy="30" r="8" fill="#d9b847"/><circle cx="74" cy="28" r="8" fill="#d9b847"/>
+  <rect x="91" y="6" width="26" height="5" fill="#1c2024"/><rect x="-114" y="6" width="27" height="5" fill="#1c2024"/>
 </g>
-<path d="M-120 950 C190 770 405 785 625 760 C890 730 1020 585 1270 570 C1490 557 1665 650 2040 520" fill="none" stroke="#e4e9ed" stroke-width="210" stroke-linecap="round"/>
-<path d="M-120 950 C190 770 405 785 625 760 C890 730 1020 585 1270 570 C1490 557 1665 650 2040 520" fill="none" stroke="url(#road)" stroke-width="176" stroke-linecap="round"/>
-<path d="M-120 950 C190 770 405 785 625 760 C890 730 1020 585 1270 570 C1490 557 1665 650 2040 520" fill="none" stroke="#cfd7dc" stroke-width="4" stroke-dasharray="34 38" opacity=".9"/>
-<!-- red/white kerbs -->
-<path d="M-45 900 C205 765 415 772 625 746" fill="none" stroke="#ffffff" stroke-width="25" stroke-dasharray="40 28"/>
-<path d="M-45 900 C205 765 415 772 625 746" fill="none" stroke="#d93939" stroke-width="25" stroke-dasharray="40 28" stroke-dashoffset="34"/>
-<path d="M1290 556 C1495 548 1698 640 1950 546" fill="none" stroke="#ffffff" stroke-width="25" stroke-dasharray="40 28"/>
-<path d="M1290 556 C1495 548 1698 640 1950 546" fill="none" stroke="#d93939" stroke-width="25" stroke-dasharray="40 28" stroke-dashoffset="34"/>
-<g opacity=".5" fill="#f2f4f5"><rect x="1030" y="674" width="380" height="50" rx="8"/></g>
-<g opacity=".52" font-family="Arial Black, Arial, sans-serif" font-weight="900" fill="#ffffff"><text x="1015" y="835" font-size="132" transform="rotate(-7 1015 835)">IMOLA</text></g>
-<g opacity=".22" filter="url(#soft)"><ellipse cx="1450" cy="680" rx="230" ry="35" fill="#d82525"/></g>
+<!-- foreground grass vignette -->
+<path d="M0 1020 C310 940 520 990 760 948 C1030 902 1370 936 1920 848 L1920 1080 L0 1080Z" fill="#1e3f2c" opacity=".56"/>
+<rect width="1920" height="1080" fill="#071a28" opacity=".08"/>
 </svg>

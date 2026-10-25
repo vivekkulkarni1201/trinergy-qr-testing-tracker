@@ -1631,3 +1631,237 @@ main,.dashboard-shell,.content,.page-wrap,.app-shell{background:transparent!impo
   html[data-theme="light"] body:before{opacity:.58!important}
   .panel:has(.today-table)::after{width:145px;height:52px;right:6px;bottom:6px;opacity:.12}
 }
+
+
+/* =========================================================
+   v6.14.33 — LIGHT PALETTE ONLY
+   Dark mode intentionally untouched.
+   No racing/photo background in light mode. No neon/glow in light mode.
+   ========================================================= */
+html[data-theme="light"]{
+  --lp-page:#e9eff4;
+  --lp-surface:#f7fafc;
+  --lp-surface-2:#eef4f8;
+  --lp-header:#dfe9f0;
+  --lp-border:#b9cbd8;
+  --lp-border-soft:#d2dee6;
+  --lp-text:#17324a;
+  --lp-muted:#60788b;
+  --lp-blue:#2f9fd6;
+  --lp-green:#31b58a;
+  --lp-violet:#9a6bd8;
+  --lp-amber:#d99a2b;
+  --lp-rose:#d95774;
+}
+
+/* Page + header: calm industrial light theme, no background photo */
+html[data-theme="light"] body{
+  background:linear-gradient(180deg,#edf3f7 0%,#e7eef3 100%)!important;
+  color:var(--lp-text)!important;
+}
+html[data-theme="light"] body:before,
+html[data-theme="light"] body:after{
+  content:none!important;
+  display:none!important;
+  background:none!important;
+}
+html[data-theme="light"] #topbar{
+  background:linear-gradient(180deg,#e5edf3 0%,#dce7ee 100%)!important;
+  border-bottom:1px solid #b8cad6!important;
+  box-shadow:0 5px 16px rgba(35,66,88,.10)!important;
+  backdrop-filter:none!important;
+}
+html[data-theme="light"] .brand.brand-image{
+  background:#f5f8fa!important;
+  border:1px solid #bdccd6!important;
+  box-shadow:0 4px 10px rgba(32,62,82,.08)!important;
+}
+html[data-theme="light"] .brand.brand-image img{
+  filter:saturate(.75) contrast(.95) brightness(1.02)!important;
+}
+html[data-theme="light"] .navtab{
+  background:#f4f7f9!important;
+  color:#29465d!important;
+  border-color:#c1d0da!important;
+  box-shadow:0 2px 6px rgba(33,68,91,.06)!important;
+}
+html[data-theme="light"] .navtab:hover{
+  background:#eaf1f5!important;
+  border-color:#a9bfce!important;
+  color:#183b54!important;
+  box-shadow:0 3px 8px rgba(33,68,91,.08)!important;
+}
+html[data-theme="light"] .navtab.active{
+  background:linear-gradient(180deg,#3ea7d8,#2d8fc2)!important;
+  color:#fff!important;
+  border-color:#2b89ba!important;
+  box-shadow:0 4px 10px rgba(47,159,214,.22)!important;
+}
+html[data-theme="light"] .portal-view-toggle,
+html[data-theme="light"] .portal-theme-toggle,
+html[data-theme="light"] .clockbox,
+html[data-theme="light"] .app-version-badge{
+  background:#f5f8fa!important;
+  border-color:#bfd0db!important;
+  color:#29465d!important;
+  box-shadow:none!important;
+}
+
+/* Main surfaces */
+html[data-theme="light"] .panel{
+  background:var(--lp-surface)!important;
+  border:1px solid var(--lp-border)!important;
+  box-shadow:0 7px 18px rgba(32,65,88,.08)!important;
+  backdrop-filter:none!important;
+}
+html[data-theme="light"] .panel-head{
+  background:linear-gradient(180deg,#eef4f8,#e6eef3)!important;
+  border-bottom:1px solid #c5d4de!important;
+}
+html[data-theme="light"] .panel-head h1,
+html[data-theme="light"] .panel-head h2,
+html[data-theme="light"] .panel-head h3{
+  color:var(--lp-text)!important;
+  text-shadow:none!important;
+}
+
+/* KPI cards: muted tint, not glowing/neon */
+html[data-theme="light"] .kpi{
+  color:var(--lp-text)!important;
+  box-shadow:0 7px 16px rgba(34,68,91,.08)!important;
+  backdrop-filter:none!important;
+}
+html[data-theme="light"] .kpi.blue{
+  background:linear-gradient(135deg,#edf7fb 0%,#f8fbfd 72%)!important;
+  border-color:#93bfd4!important;
+}
+html[data-theme="light"] .kpi.green{
+  background:linear-gradient(135deg,#eef8f4 0%,#f8fbfa 72%)!important;
+  border-color:#99cdb8!important;
+}
+html[data-theme="light"] .kpi.purple{
+  background:linear-gradient(135deg,#f5f1f9 0%,#faf8fc 72%)!important;
+  border-color:#bea9d5!important;
+}
+html[data-theme="light"] .kpi-title h1,
+html[data-theme="light"] .kpi-title b{
+  color:var(--lp-text)!important;
+  text-shadow:none!important;
+}
+html[data-theme="light"] .ring{filter:none!important}
+html[data-theme="light"] .ring.blue{box-shadow:none!important}
+html[data-theme="light"] .ring.green{box-shadow:none!important}
+html[data-theme="light"] .ring.purple{box-shadow:none!important}
+html[data-theme="light"] .racks .rack{box-shadow:none!important;filter:saturate(.72)!important}
+
+/* Metric tiles — restrained color family, no luminous fill */
+html[data-theme="light"] .metric{
+  background:#f6f8fa!important;
+  box-shadow:none!important;
+  border-color:#c7d4dc!important;
+}
+html[data-theme="light"] .metric.target{background:#f8edf1!important;color:#b94761!important;border-color:#ddb4bf!important}
+html[data-theme="light"] .metric.received{background:#edf5f9!important;color:#2c86b1!important;border-color:#acd0df!important}
+html[data-theme="light"] .metric.queue{background:#f8f1e7!important;color:#b56f28!important;border-color:#ddc19e!important}
+html[data-theme="light"] .metric.completed{background:#edf7f2!important;color:#278e6c!important;border-color:#afd4c5!important}
+html[data-theme="light"] .metric.testing{background:#f8f4e8!important;color:#a97d20!important;border-color:#ddcfaa!important}
+html[data-theme="light"] .metric.stock{background:#f3eef8!important;color:#7e5aaa!important;border-color:#cbbbdc!important}
+html[data-theme="light"] .metric span,
+html[data-theme="light"] .metric b{text-shadow:none!important}
+
+/* Monthly performance */
+html[data-theme="light"] .race-row{
+  background:#f3f7fa!important;
+  border-color:#c8d6df!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+html[data-theme="light"] .race-type,
+html[data-theme="light"] .race-percent{
+  background:#f8fafb!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+}
+html[data-theme="light"] .race-track{
+  background:#e6eef3!important;
+  border-color:#b9cad5!important;
+}
+html[data-theme="light"] .race-progress{opacity:.58!important;box-shadow:none!important}
+html[data-theme="light"] .race-dashes{filter:none!important;opacity:.72!important}
+html[data-theme="light"] .race-type-name,
+html[data-theme="light"] .race-percent strong{text-shadow:none!important}
+
+/* Today's status — neutral surface, remove decorative Ferrari watermark in LIGHT mode only */
+html[data-theme="light"] .today-table{background:transparent!important}
+html[data-theme="light"] .today-table th,
+html[data-theme="light"] .today-table td{border-color:#d0dce4!important}
+html[data-theme="light"] .today-table thead th{color:#29465d!important}
+html[data-theme="light"] .panel:has(.today-table)::after,
+html[data-theme="light"] #todayStatus:after,
+html[data-theme="light"] .today-status:after,
+html[data-theme="light"] .today-panel:after{display:none!important;content:none!important}
+
+/* Weekly — matte glass tank, muted water, zero neon */
+html[data-theme="light"] .weekly-neon-card,
+html[data-theme="light"] .weekly-energy-card{
+  background:#f6f9fb!important;
+  box-shadow:0 6px 14px rgba(33,67,90,.07)!important;
+  border-color:#c3d1da!important;
+}
+html[data-theme="light"] .weekly-neon-card:before{border-color:#d7e1e7!important}
+html[data-theme="light"] .weekly-tank{
+  background:linear-gradient(180deg,#edf3f6,#e5edf2)!important;
+  border-color:color-mix(in srgb,var(--accent) 42%,#aebec8)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),0 5px 10px rgba(39,72,92,.07)!important;
+}
+html[data-theme="light"] .weekly-tank:before,
+html[data-theme="light"] .weekly-tank:after{
+  box-shadow:none!important;
+  filter:none!important;
+}
+html[data-theme="light"] .tank-glass{
+  background:linear-gradient(100deg,rgba(255,255,255,.46),rgba(255,255,255,.12) 30%,transparent 66%,rgba(255,255,255,.30))!important;
+}
+html[data-theme="light"] .tank-liquid{box-shadow:none!important;filter:none!important;opacity:.72!important}
+html[data-theme="light"] .weekly-neon-card:not(.green):not(.purple) .tank-liquid{background:linear-gradient(180deg,#b9dce9,#63abc7)!important}
+html[data-theme="light"] .weekly-neon-card.green .tank-liquid{background:linear-gradient(180deg,#bfe1d4,#69b497)!important}
+html[data-theme="light"] .weekly-neon-card.purple .tank-liquid{background:linear-gradient(180deg,#d6cae4,#a78fbe)!important}
+html[data-theme="light"] .tank-liquid i{opacity:.24!important;box-shadow:none!important}
+html[data-theme="light"] .tank-value,
+html[data-theme="light"] .tank-value b,
+html[data-theme="light"] .weekly-neon-name b{text-shadow:none!important;color:var(--lp-text)!important}
+html[data-theme="light"] .weekly-stat-box{
+  background:#f1f5f7!important;
+  border-color:#c6d3db!important;
+  box-shadow:none!important;
+}
+html[data-theme="light"] .weekly-stat-box .stat-icon{text-shadow:none!important}
+html[data-theme="light"] .weekly-stat-box>span:nth-child(2){color:#617889!important}
+html[data-theme="light"] .weekly-neon-progress:before{background:#d9e3e9!important;border-color:#bdcbd4!important}
+html[data-theme="light"] .weekly-neon-progress i{box-shadow:none!important;filter:saturate(.72)!important}
+
+/* Test bays */
+html[data-theme="light"] .bay-card{
+  background:#f6f9fb!important;
+  border-color:#c1d0d9!important;
+  box-shadow:0 5px 12px rgba(35,68,90,.07)!important;
+}
+html[data-theme="light"] .bay-card:hover{box-shadow:0 7px 16px rgba(35,68,90,.10)!important}
+html[data-theme="light"] .bay-slot{
+  background:#eef4f7!important;
+  border-color:#c1d0d8!important;
+  box-shadow:none!important;
+}
+html[data-theme="light"] .bay-slot.empty{border-color:#aacdbf!important}
+html[data-theme="light"] .slot-tag{background:#d8e7ef!important;color:#274a61!important}
+html[data-theme="light"] .slot-serial{color:#17324a!important}
+html[data-theme="light"] .slot-stage{color:#587184!important}
+html[data-theme="light"] .available{color:#2f8c6f!important}
+
+/* Logged-in chip */
+html[data-theme="light"] .portal-login-chip{
+  background:#e4edf3!important;
+  border-color:#b5c8d4!important;
+  color:#29465d!important;
+  box-shadow:0 4px 10px rgba(35,68,90,.08)!important;
+}

@@ -1505,3 +1505,129 @@ main,.dashboard-shell,.content{background:transparent!important}
   html[data-theme="light"] body:after{opacity:.32!important}
   #todayStatus:after,.today-status:after,.today-panel:after{width:145px;height:52px;right:8px;bottom:8px;opacity:.10}
 }
+
+
+/* v6.14.32 — VISUAL ONLY: realistic Imola background + mockup fidelity correction */
+:root{
+  --imola-dark-real:url('imola-dark-v61432.jpg');
+  --imola-light-real:url('imola-light-v61432.jpg');
+}
+html,body{min-height:100%;background-attachment:fixed!important}
+body{position:relative;background:#061725!important}
+body:before{
+  content:'';position:fixed;inset:0;z-index:-4;pointer-events:none;
+  background-image:var(--imola-dark-real)!important;
+  background-repeat:no-repeat!important;background-size:cover!important;background-position:center top!important;background-attachment:fixed!important;
+  opacity:.74!important;filter:saturate(1.05) contrast(1.03) brightness(.74)!important;
+}
+body:after{
+  content:'';position:fixed;inset:0;z-index:-3;pointer-events:none;
+  background:linear-gradient(180deg,rgba(1,15,27,.16) 0%,rgba(2,18,31,.33) 28%,rgba(2,20,34,.56) 68%,rgba(2,18,31,.72) 100%)!important;
+}
+html[data-theme="dark"] body:before,.theme-dark body:before{
+  background-image:var(--imola-dark-real)!important;opacity:.78!important;
+  filter:saturate(1.08) contrast(1.08) brightness(.70)!important;
+}
+html[data-theme="light"] body{
+  background:#eaf3f8!important;color:#17344c!important;
+}
+html[data-theme="light"] body:before{
+  background-image:var(--imola-light-real)!important;opacity:.72!important;
+  filter:saturate(.93) contrast(.96) brightness(1.04)!important;
+}
+html[data-theme="light"] body:after{
+  background:linear-gradient(180deg,rgba(246,251,255,.20) 0%,rgba(242,249,253,.36) 32%,rgba(236,246,251,.60) 70%,rgba(232,243,249,.78) 100%)!important;
+}
+
+/* Make the circuit visible from the very top through the whole dashboard without changing layout. */
+#topbar{backdrop-filter:blur(7px)!important}
+html[data-theme="dark"] #topbar,.theme-dark #topbar{
+  background:linear-gradient(180deg,rgba(3,22,37,.84),rgba(3,25,42,.76))!important;
+  border-bottom-color:rgba(36,184,240,.52)!important;
+}
+html[data-theme="dark"] .panel,.theme-dark .panel{
+  background:linear-gradient(180deg,rgba(5,25,41,.86),rgba(5,21,35,.80))!important;
+  backdrop-filter:blur(3px)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.18),inset 0 0 0 1px rgba(38,172,226,.06)!important;
+}
+html[data-theme="dark"] .panel-head,.theme-dark .panel-head{
+  background:linear-gradient(90deg,rgba(6,34,54,.82),rgba(5,26,43,.64))!important;
+}
+
+/* Light mode: cooler, richer palette. Not a flat white inversion. */
+html[data-theme="light"] #topbar{
+  background:linear-gradient(180deg,rgba(252,254,255,.92),rgba(233,244,250,.84))!important;
+  border-bottom:1px solid rgba(102,170,204,.55)!important;
+  box-shadow:0 8px 22px rgba(42,90,116,.14)!important;
+}
+html[data-theme="light"] .brand.brand-image{
+  background:linear-gradient(135deg,rgba(255,255,255,.97),rgba(226,244,252,.94))!important;
+  border:1px solid #9fcde3!important;
+  box-shadow:0 6px 18px rgba(41,111,145,.14)!important;
+}
+html[data-theme="light"] .brand.brand-image img{
+  filter:invert(1) grayscale(1) contrast(1.18) brightness(.84)!important;
+  mix-blend-mode:multiply!important;
+}
+html[data-theme="light"] .panel{
+  background:linear-gradient(180deg,rgba(253,255,255,.88),rgba(239,247,251,.82))!important;
+  border:1px solid rgba(118,177,205,.58)!important;
+  box-shadow:0 10px 26px rgba(45,84,106,.11),inset 0 0 0 1px rgba(255,255,255,.82)!important;
+  backdrop-filter:blur(4px)!important;
+}
+html[data-theme="light"] .panel-head{
+  background:linear-gradient(90deg,rgba(247,252,255,.88),rgba(231,243,249,.70))!important;
+}
+html[data-theme="light"] .kpi.blue{background:linear-gradient(135deg,rgba(220,243,255,.90),rgba(249,253,255,.85))!important}
+html[data-theme="light"] .kpi.green{background:linear-gradient(135deg,rgba(222,248,239,.90),rgba(250,253,251,.85))!important}
+html[data-theme="light"] .kpi.purple{background:linear-gradient(135deg,rgba(239,228,255,.90),rgba(252,249,255,.85))!important}
+html[data-theme="light"] .metric{
+  background:linear-gradient(180deg,rgba(255,255,255,.76),rgba(244,249,252,.70))!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.76),0 4px 11px rgba(42,80,102,.055)!important;
+}
+html[data-theme="light"] .race-row{
+  background:linear-gradient(180deg,rgba(255,255,255,.84),rgba(240,247,251,.78))!important;
+  backdrop-filter:blur(3px)!important;
+}
+
+/* Weekly tanks: separate light-mode glass design with richer liquid and readable stat blocks. */
+html[data-theme="light"] .weekly-neon-card{
+  background:linear-gradient(180deg,rgba(252,254,255,.88),rgba(236,246,250,.80))!important;
+  border-color:color-mix(in srgb,var(--accent) 48%,#9fbaca)!important;
+  box-shadow:0 10px 24px rgba(44,80,101,.10),inset 0 0 0 1px rgba(255,255,255,.88)!important;
+  backdrop-filter:blur(4px)!important;
+}
+html[data-theme="light"] .weekly-tank{
+  background:linear-gradient(90deg,rgba(255,255,255,.98),rgba(221,239,247,.62) 18%,rgba(255,255,255,.20) 48%,rgba(213,234,244,.54) 80%,rgba(255,255,255,.96))!important;
+  border:3px solid color-mix(in srgb,var(--accent) 74%,#ffffff)!important;
+  box-shadow:inset 0 0 30px rgba(255,255,255,.96),inset 9px 0 18px rgba(255,255,255,.88),0 8px 20px color-mix(in srgb,var(--accent) 22%,transparent)!important;
+}
+html[data-theme="light"] .tank-liquid{opacity:.94!important;filter:saturate(1.08) contrast(1.02)!important}
+html[data-theme="light"] .weekly-neon-card:not(.green):not(.purple) .tank-liquid{background:linear-gradient(180deg,#d7f6ff 0%,#6fdcff 15%,#1eafea 58%,#087fbf 100%)!important}
+html[data-theme="light"] .weekly-neon-card.green .tank-liquid{background:linear-gradient(180deg,#ddfff1 0%,#72edbc 15%,#19c889 58%,#079a68 100%)!important}
+html[data-theme="light"] .weekly-neon-card.purple .tank-liquid{background:linear-gradient(180deg,#f2e3ff 0%,#ce92ff 15%,#a85be8 58%,#7c31c4 100%)!important}
+html[data-theme="light"] .weekly-stat-box{
+  background:linear-gradient(180deg,rgba(255,255,255,.90),rgba(233,243,248,.84))!important;
+  border-color:color-mix(in srgb,var(--accent) 48%,#b9ccd7)!important;
+}
+html[data-theme="light"] .weekly-stat-box>span:nth-child(2){color:#44677e!important}
+
+/* Ferrari visual under Today's Status, exactly visual-only. */
+.panel:has(.today-table){position:relative!important;overflow:hidden!important}
+.panel:has(.today-table)::after{
+  content:'';position:absolute;right:18px;bottom:8px;width:250px;height:88px;z-index:0;pointer-events:none;
+  background:url('ferrari-f1-rosso-corsa.png') right bottom/contain no-repeat;
+  opacity:.22;filter:drop-shadow(0 0 10px rgba(255,28,28,.20));
+}
+.panel:has(.today-table)>*{position:relative;z-index:1}
+html[data-theme="light"] .panel:has(.today-table)::after{opacity:.20;filter:saturate(.90) drop-shadow(0 4px 9px rgba(128,24,24,.12))}
+
+/* Dashboard canvas stays transparent so the realistic circuit is actually visible. */
+main,.dashboard-shell,.content,.page-wrap,.app-shell{background:transparent!important}
+
+@media(max-width:720px){
+  body:before{background-position:58% top!important;opacity:.62!important}
+  html[data-theme="dark"] body:before{opacity:.66!important}
+  html[data-theme="light"] body:before{opacity:.58!important}
+  .panel:has(.today-table)::after{width:145px;height:52px;right:6px;bottom:6px;opacity:.12}
+}

@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.28';
+const TQR_APP_VERSION = 'v6.14.29';
 
 /* v6.14.22 — secure persistent engineer session + admin role */
 const TQR_LOGIN_KEY='tqr_engineer_portal_session';
@@ -14,6 +14,53 @@ function tqrGetSavedLogin(){try{const x=JSON.parse(localStorage.getItem(TQR_LOGI
 function tqrSaveLogin(row){const x={session_token:String(row.session_token||''),name:String(row.engineer_name||row.name||'').trim(),is_admin:row.is_admin===true,saved_at:Date.now()};localStorage.setItem(TQR_LOGIN_KEY,JSON.stringify(x));return x}
 async function tqrLogout(){const x=tqrGetSavedLogin();try{if(x?.session_token)await sb.rpc('tqr_engineer_logout',{p_session_token:x.session_token})}catch{}try{localStorage.removeItem(TQR_LOGIN_KEY)}catch{}location.reload()}
 window.tqrLogout=tqrLogout;
+
+
+/* v6.14.29 — visual theme preference (per logged-in engineer, dark remains default) */
+const TQR_THEME_DEFAULT_KEY='tqr_portal_theme_default';
+function tqrThemeUserKey(){
+  const login=tqrGetSavedLogin();
+  const name=String(login?.name||'').trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'_');
+  return name?`tqr_portal_theme_${name}`:TQR_THEME_DEFAULT_KEY;
+}
+function getPortalTheme(){
+  try{
+    const userKey=tqrThemeUserKey();
+    const user=String(localStorage.getItem(userKey)||'').toLowerCase();
+    if(user==='light'||user==='dark')return user;
+    const fallback=String(localStorage.getItem(TQR_THEME_DEFAULT_KEY)||'').toLowerCase();
+    if(fallback==='light'||fallback==='dark')return fallback;
+  }catch{}
+  return 'dark';
+}
+function applyPortalTheme(){
+  const theme=getPortalTheme();
+  document.documentElement.dataset.theme=theme;
+  if(document.body){
+    document.body.classList.toggle('theme-light',theme==='light');
+    document.body.classList.toggle('theme-dark',theme!=='light');
+  }
+  return theme;
+}
+function setPortalTheme(theme){
+  const next=theme==='light'?'light':'dark';
+  try{
+    localStorage.setItem(tqrThemeUserKey(),next);
+    if(!tqrGetSavedLogin())localStorage.setItem(TQR_THEME_DEFAULT_KEY,next);
+  }catch{}
+  applyPortalTheme();
+  document.querySelectorAll('[data-theme-toggle]').forEach(x=>x.checked=next==='light');
+}
+function bindThemeSwitch(){
+  applyPortalTheme();
+  document.querySelectorAll('[data-theme-toggle]').forEach(sw=>{
+    sw.checked=getPortalTheme()==='light';
+    sw.onchange=()=>setPortalTheme(sw.checked?'light':'dark');
+  });
+}
+window.getPortalTheme=getPortalTheme;
+window.setPortalTheme=setPortalTheme;
+applyPortalTheme();
 
 /* v6.14.28 — stage audit is always stamped from the authenticated portal session */
 function tqrLoggedEngineer(){
@@ -39,12 +86,12 @@ window.tqrAuditLog=tqrAuditLog;
 function tqrNeedsLogin(){return getPortalView()==='testing'}
 function tqrLoginOverlay(){window._tqrAuthBusy=true;let o=document.querySelector('.portal-login-overlay');if(o)return o;o=document.createElement('div');o.className='portal-login-overlay';o.innerHTML=`<div class="portal-login-card"><div class="portal-login-brand"><img src="trinergy-brand-banner.png" alt="TRINERGY"></div><div class="portal-login-eyebrow">AUTHORIZED PERSONNEL ONLY</div><h2>Engineer Login</h2><p>Login once on this browser. Your login stays remembered until Logout or Admin disables your account.</p><label>Engineer Name<select id="portalLoginEngineer"><option>Loading engineers…</option></select></label><label>Password<input id="portalLoginId" type="password" autocomplete="current-password" placeholder="Enter Employee ID"><small class="portal-login-hint">Your Employee ID is your password.</small></label><button type="button" id="portalLoginBtn">Login to Trinergy Tracker</button><div id="portalLoginMsg" class="portal-login-msg"></div></div>`;document.body.appendChild(o);return o}
 async function tqrEngineerNames(){const r=await sb.rpc('tqr_engineer_names');if(r.error)throw r.error;return(r.data||[]).map(x=>String(x.engineer_name||'').trim()).filter(Boolean)}
-async function tqrShowLogin(){const o=tqrLoginOverlay(),dd=o.querySelector('#portalLoginEngineer'),msg=o.querySelector('#portalLoginMsg');let names=[];try{names=await tqrEngineerNames();dd.innerHTML='<option value="">Select registered engineer…</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}catch(e){dd.innerHTML='<option value="">Unable to load engineer list</option>';msg.textContent='Unable to verify engineers. Check network and try again.'}const doLogin=async()=>{msg.textContent='';const engineer_name=String(dd.value||'').trim(),employee_id=String(o.querySelector('#portalLoginId').value||'').trim();if(!engineer_name){msg.textContent='Select a registered engineer.';return}if(!employee_id){msg.textContent='Enter your Employee ID.';return}const r=await sb.rpc('tqr_engineer_login',{p_engineer_name:engineer_name,p_employee_id:employee_id});if(r.error){msg.textContent='Login verification failed.';return}const row=Array.isArray(r.data)?r.data[0]:r.data;if(!row?.session_token){msg.textContent='Authorized personnel only — invalid Employee ID.';return}const saved=tqrSaveLogin(row);window._tqrAuthBusy=false;o.remove();tqrShowLoggedInChip(saved);tqrRefreshTopbar();tqrApplyAdminGate(saved);showToast('Engineer login successful');if(window._tqrDeferredReload){window._tqrDeferredReload=false;setTimeout(()=>location.reload(),500)}};o.querySelector('#portalLoginBtn').onclick=doLogin;o.querySelector('#portalLoginId').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()})}
+async function tqrShowLogin(){const o=tqrLoginOverlay(),dd=o.querySelector('#portalLoginEngineer'),msg=o.querySelector('#portalLoginMsg');let names=[];try{names=await tqrEngineerNames();dd.innerHTML='<option value="">Select registered engineer…</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}catch(e){dd.innerHTML='<option value="">Unable to load engineer list</option>';msg.textContent='Unable to verify engineers. Check network and try again.'}const doLogin=async()=>{msg.textContent='';const engineer_name=String(dd.value||'').trim(),employee_id=String(o.querySelector('#portalLoginId').value||'').trim();if(!engineer_name){msg.textContent='Select a registered engineer.';return}if(!employee_id){msg.textContent='Enter your Employee ID.';return}const r=await sb.rpc('tqr_engineer_login',{p_engineer_name:engineer_name,p_employee_id:employee_id});if(r.error){msg.textContent='Login verification failed.';return}const row=Array.isArray(r.data)?r.data[0]:r.data;if(!row?.session_token){msg.textContent='Authorized personnel only — invalid Employee ID.';return}const saved=tqrSaveLogin(row);applyPortalTheme();window._tqrAuthBusy=false;o.remove();tqrShowLoggedInChip(saved);tqrRefreshTopbar();tqrApplyAdminGate(saved);showToast('Engineer login successful');if(window._tqrDeferredReload){window._tqrDeferredReload=false;setTimeout(()=>location.reload(),500)}};o.querySelector('#portalLoginBtn').onclick=doLogin;o.querySelector('#portalLoginId').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()})}
 function tqrShowLoggedInChip(row){document.querySelector('.portal-login-chip')?.remove();const chip=document.createElement('div');chip.className='portal-login-chip';chip.innerHTML=`<span>👤 ${esc(row.name||row.engineer_name||'Engineer')}</span>${row.is_admin===true?'<b class="admin-role-chip">ADMIN</b>':''}<button type="button">Logout</button>`;chip.querySelector('button').onclick=tqrLogout;document.body.appendChild(chip)}
 async function tqrValidateSession(saved){const r=await sb.rpc('tqr_validate_engineer_session',{p_session_token:saved.session_token});if(r.error)return null;const row=Array.isArray(r.data)?r.data[0]:r.data;return row?.session_token?row:null}
 function tqrApplyAdminGate(row){const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(page!=='admin.html')return;document.documentElement.classList.remove('admin-auth-pending');if(row?.is_admin===true)return;showToast('Admin access only');setTimeout(()=>{const u=new URL('index.html',location.href);u.searchParams.set('view','testing');location.replace(u.toString())},350)}
 function tqrRefreshTopbar(){if(window._tqrActiveTopbar)mountTopbar(window._tqrActiveTopbar)}
-async function tqrValidateSavedLogin(){if(_tqrLoginCheckDone)return;_tqrLoginCheckDone=true;if(!tqrNeedsLogin()){document.documentElement.classList.remove('admin-auth-pending');return}const saved=tqrGetSavedLogin();if(!saved){await tqrShowLogin();return}try{const row=await tqrValidateSession(saved);if(!row){localStorage.removeItem(TQR_LOGIN_KEY);await tqrShowLogin();return}const current=tqrSaveLogin(row);window._tqrAuthBusy=false;tqrShowLoggedInChip(current);tqrRefreshTopbar();tqrApplyAdminGate(current)}catch{localStorage.removeItem(TQR_LOGIN_KEY);await tqrShowLogin()}}
+async function tqrValidateSavedLogin(){if(_tqrLoginCheckDone)return;_tqrLoginCheckDone=true;if(!tqrNeedsLogin()){document.documentElement.classList.remove('admin-auth-pending');return}const saved=tqrGetSavedLogin();if(!saved){await tqrShowLogin();return}try{const row=await tqrValidateSession(saved);if(!row){localStorage.removeItem(TQR_LOGIN_KEY);await tqrShowLogin();return}const current=tqrSaveLogin(row);applyPortalTheme();window._tqrAuthBusy=false;tqrShowLoggedInChip(current);tqrRefreshTopbar();tqrApplyAdminGate(current)}catch{localStorage.removeItem(TQR_LOGIN_KEY);await tqrShowLogin()}}
 if((location.pathname.split('/').pop()||'').toLowerCase()==='admin.html')document.documentElement.classList.add('admin-auth-pending');
 window.addEventListener('DOMContentLoaded',()=>setTimeout(tqrValidateSavedLogin,80));
 
@@ -166,6 +213,14 @@ function navHtml(active){
       <span class="portal-view-slider"></span>
     </label>
   </div>
+  <div class="portal-theme-toggle compact" aria-label="Dark or light theme" title="Theme">
+    <span class="theme-icon theme-moon">☾</span>
+    <label class="portal-theme-switch" aria-label="Theme toggle">
+      <input type="checkbox" data-theme-toggle ${getPortalTheme()==='light'?'checked':''}>
+      <span class="portal-theme-slider"></span>
+    </label>
+    <span class="theme-icon theme-sun">☀</span>
+  </div>
   <div class="navright"><span class="live-dot"></span><span class="live-label">Live</span><div class="clockbox"><span id="dateNow"></span><b id="timeNow"></b></div></div>`;
 }
 function mountTopbar(active){
@@ -175,6 +230,7 @@ function mountTopbar(active){
   const e = $('#topbar'); if(!e) return;
   e.innerHTML = navHtml(active);
   bindPortalViewSwitch();
+  bindThemeSwitch();
   const tick = ()=>{
     const d = new Date();
     const date = $('#dateNow'), time = $('#timeNow');
@@ -249,7 +305,7 @@ function mountScanHeader(){
   applyPortalViewClass();
   if(isPublicPortalView()){ setPortalView('testing'); return; }
   const e=$('#topbar'); if(!e)return;
-  e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`; mountVersionBadge();
+  e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="portal-theme-toggle compact" aria-label="Dark or light theme" title="Theme"><span class="theme-icon theme-moon">☾</span><label class="portal-theme-switch"><input type="checkbox" data-theme-toggle ${getPortalTheme()==='light'?'checked':''}><span class="portal-theme-slider"></span></label><span class="theme-icon theme-sun">☀</span></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`; bindThemeSwitch(); mountVersionBadge();
 }
 let _rtTimers={};
 function realtimeWatch(name,tables,callback,delay=180){

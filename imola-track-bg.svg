@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="asphalt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d2433"/>
+      <stop offset="1" stop-color="#09141d"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2ed9ff" stop-opacity=".08"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#2ed9ff" stop-opacity=".05"/>
+    </linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#asphalt)"/>
+  <g opacity=".42" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M110 710 C210 630 270 605 382 626 C497 648 535 562 634 546 C728 530 796 588 860 534 C944 463 884 370 974 318 C1059 269 1174 327 1251 270 C1325 216 1416 229 1500 285" stroke="#ebf7ff" stroke-width="38"/>
+    <path d="M110 710 C210 630 270 605 382 626 C497 648 535 562 634 546 C728 530 796 588 860 534 C944 463 884 370 974 318 C1059 269 1174 327 1251 270 C1325 216 1416 229 1500 285" stroke="#263948" stroke-width="30"/>
+    <path d="M110 710 C210 630 270 605 382 626 C497 648 535 562 634 546 C728 530 796 588 860 534 C944 463 884 370 974 318 C1059 269 1174 327 1251 270 C1325 216 1416 229 1500 285" stroke="url(#glow)" stroke-width="4"/>
+  </g>
+  <g opacity=".32">
+    <rect x="1020" y="650" width="455" height="46" rx="10" fill="#1d2b34"/>
+    <path d="M1040 673 H1455" stroke="#f4f4f4" stroke-width="4" stroke-dasharray="22 20"/>
+    <g fill="#e9eef2">
+      <rect x="1080" y="622" width="34" height="24"/><rect x="1125" y="618" width="34" height="28"/><rect x="1170" y="614" width="34" height="32"/><rect x="1215" y="620" width="34" height="26"/><rect x="1260" y="611" width="34" height="35"/><rect x="1305" y="619" width="34" height="27"/>
+    </g>
+  </g>
+  <g opacity=".22" font-family="Arial, sans-serif" font-weight="900" fill="#ffffff">
+    <text x="1080" y="760" font-size="92" transform="rotate(-7 1080 760)">IMOLA</text>
+  </g>
+  <g opacity=".10" filter="url(#blur)" fill="#e83636">
+    <ellipse cx="1320" cy="690" rx="160" ry="34"/>
+  </g>
+</svg>

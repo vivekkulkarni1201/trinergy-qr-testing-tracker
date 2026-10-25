@@ -307,13 +307,17 @@ async function finishFromStock(){
 }
 async function markFaulty(){
   if(blockCompleted())return;
-  if(!needEng())return;if(!confirm('Mark this UPS as Faulty / RTA?'))return;
+  if(!needEng())return;
+  if(!confirm('Mark this UPS as Faulty / RTA?'))return;
+  const remarks=String(prompt('Fault Remarks — briefly enter what fault was observed:','')||'').trim();
+  if(!remarks)return showToast('Fault Remarks are required before moving UPS to Faulty Area');
   const now=nowIso(),st=sstate(),run=runningHeat(st);
   if(run){const stop={};stop[run+'_started']=false;stop[run+'_started_at']=null;const rr=await sb.from('tqr_stage_state').update(stop).eq('unit_id',current.id);if(rr.error)return showToast(rr.error.message)}
-  const ur=await sb.from('tqr_units').update({status:'RTA',current_stage:'FAULTY LOCATION',parked:false,faulted:true,faulted_at:now}).eq('id',current.id);
+  const ur=await sb.from('tqr_units').update({status:'RTA',current_stage:'FAULTY LOCATION',parked:false,faulted:true,faulted_at:now,fault_remarks:remarks}).eq('id',current.id);
   if(ur.error)return showToast(ur.error.message);
   await sb.from('tqr_bay_occupancy').update({released_at:now}).eq('unit_id',current.id).is('released_at',null);
-  await log('FAULT','FAULTY LOCATION','FAIL',run?`Stopped ${run}`:'Fault during testing');clearInterval(timerTicker);showToast('Moved to Faulty Area');await reload();
+  const note=run?`${remarks} · Stopped ${run}`:remarks;
+  await log('FAULT','FAULTY LOCATION','FAIL',note);clearInterval(timerTicker);showToast('Moved to Faulty Area');await reload();
 }
 async function moveToParking(){
   if(blockCompleted())return;

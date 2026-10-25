@@ -18,7 +18,9 @@ function fillBay(id){
 }
 async function boot(){
  coreData=await loadCore();units=coreData.u.filter(u=>u.status==='RTA');
- $('#faultBody').innerHTML=units.map(u=>`<tr><td data-label="Serial" class="faulted-serial">${esc(u.serial_number||u.qr_code)}</td><td data-label="Type">${u.ups_type}</td><td data-label="Faulted At">${u.faulted_at?new Date(u.faulted_at).toLocaleString():'—'}</td><td data-label="Last Stage">${esc(u.current_stage)}</td><td data-label="Re-entry" class="fault-reentry-cell"><select id="rs_${u.id}" onchange="fillBay('${u.id}')">${stageOptions(u).map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><select id="rb_${u.id}" class="fault-bay-select"></select><button class="danger" onclick="reenter('${u.id}')">RE-ENTER TESTING</button></td></tr>`).join('')||'<tr><td colspan="5">No faulty UPS.</td></tr>';
+ const body=$('#faultBody'),tableEl=body?.closest('table'),headRow=tableEl?.querySelector('thead tr');
+ if(headRow)headRow.innerHTML='<th>Serial</th><th>Type</th><th>Faulted At</th><th>Last Stage</th><th>Fault Remarks</th><th>Re-entry</th>';
+ body.innerHTML=units.map(u=>`<tr><td data-label="Serial" class="faulted-serial">${esc(u.serial_number||u.qr_code)}</td><td data-label="Type">${u.ups_type}</td><td data-label="Faulted At">${u.faulted_at?new Date(u.faulted_at).toLocaleString():'—'}</td><td data-label="Last Stage">${esc(u.current_stage)}</td><td data-label="Fault Remarks" class="fault-remarks-cell">${esc(u.fault_remarks||'—')}</td><td data-label="Re-entry" class="fault-reentry-cell"><select id="rs_${u.id}" onchange="fillBay('${u.id}')">${stageOptions(u).map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')}</select><select id="rb_${u.id}" class="fault-bay-select"></select><button class="danger" onclick="reenter('${u.id}')">RE-ENTER TESTING</button></td></tr>`).join('')||'<tr><td colspan="6">No faulty UPS.</td></tr>';
  units.forEach(u=>fillBay(u.id));
 }
 async function reenter(id){

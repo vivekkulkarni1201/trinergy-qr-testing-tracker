@@ -1134,3 +1134,205 @@ html.admin-auth-pending body main{visibility:hidden}
   .faulty-page .portal-login-chip{max-width:calc(100vw - 24px)!important;right:12px!important;bottom:10px!important}
   .engineer-auth-box{min-width:0!important;width:100%!important;margin-top:8px}
 }
+
+/* =========================================================
+   v6.14.29 — Dual Theme + Imola visual overhaul
+   Dark remains default. Light theme is visual-only.
+   ========================================================= */
+
+/* Shared theme switch */
+.portal-theme-toggle{display:flex;align-items:center;gap:7px;flex:0 0 auto;border:1px solid #185c83;border-radius:12px;padding:6px 9px;background:rgba(6,24,39,.76);box-shadow:inset 0 0 14px rgba(0,181,255,.05)}
+.theme-icon{font-size:13px;line-height:1;opacity:.72}
+.portal-theme-switch{position:relative;display:inline-flex;width:46px;height:24px}
+.portal-theme-switch input{position:absolute;opacity:0;pointer-events:none}
+.portal-theme-slider{position:absolute;inset:0;border-radius:999px;background:#0d3a57;border:1px solid #1d84b5;box-shadow:inset 0 0 10px rgba(0,0,0,.35);cursor:pointer;transition:.22s}
+.portal-theme-slider:after{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#bfefff;box-shadow:0 0 8px rgba(78,215,255,.7);transition:.22s}
+.portal-theme-switch input:checked + .portal-theme-slider{background:#f1f5f8;border-color:#8da9ba}
+.portal-theme-switch input:checked + .portal-theme-slider:after{transform:translateX(21px);background:#ffd05a;box-shadow:0 0 9px rgba(255,184,46,.45)}
+
+/* Imola-inspired faint visual in BOTH themes */
+html,body{
+  background-image:linear-gradient(180deg,rgba(2,13,23,.84),rgba(2,12,20,.90)),url('imola-track-bg.svg')!important;
+  background-size:cover,cover!important;
+  background-position:center top,center center!important;
+  background-attachment:fixed,fixed!important;
+  background-repeat:no-repeat!important;
+}
+.theme-dark .panel,
+.theme-dark .kpi,
+.theme-dark .race-row,
+.theme-dark .weekly-neon-card,
+.theme-dark .bay-card{
+  backdrop-filter:blur(1.5px);
+}
+.theme-dark .panel{background:linear-gradient(145deg,rgba(8,36,59,.88),rgba(6,24,39,.90))}
+.theme-dark .kpi.blue{background:linear-gradient(130deg,rgba(11,91,153,.88),rgba(6,27,44,.88) 67%)}
+.theme-dark .kpi.green{background:linear-gradient(130deg,rgba(11,106,75,.88),rgba(6,27,44,.88) 67%)}
+.theme-dark .kpi.purple{background:linear-gradient(130deg,rgba(73,48,135,.88),rgba(6,27,44,.88) 67%)}
+
+/* Fault remarks — desktop + mobile */
+.fault-remarks-cell{max-width:300px;white-space:normal!important;line-height:1.4;color:#ffd8d8}
+@media(max-width:720px){
+  .faulty-page #faultBody tr{grid-template-columns:1fr 1fr!important}
+  .faulty-page #faultBody td[data-label="Serial"],
+  .faulty-page #faultBody td[data-label="Fault Remarks"],
+  .faulty-page #faultBody td[data-label="Re-entry"]{grid-column:1/-1}
+  .faulty-page #faultBody td[data-label]::before{content:attr(data-label);display:block;margin-bottom:5px;font-size:9px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#79bedd}
+  .faulty-page #faultBody td[data-label="Fault Remarks"]{padding:10px!important;border:1px solid rgba(255,91,91,.25)!important;border-radius:9px;background:rgba(104,18,25,.18)}
+  .faulty-page #faultBody .fault-reentry-cell{display:grid!important;gap:8px}
+  .faulty-page #faultBody .fault-reentry-cell select,
+  .faulty-page #faultBody .fault-reentry-cell button{width:100%!important;margin:0!important}
+  .faulty-page main{padding-bottom:88px!important}
+}
+
+/* ---------------- LIGHT MODE ---------------- */
+html[data-theme="light"]{
+  --bg:#e9f0f5;
+  --panel:#f7fbfe;
+  --panel2:#edf5fa;
+  --line:#a9c9da;
+  --text:#12324a;
+  --muted:#617e93;
+}
+html[data-theme="light"],html[data-theme="light"] body{
+  color:#12324a!important;
+  background-image:linear-gradient(180deg,rgba(239,246,250,.76),rgba(230,239,245,.88)),url('imola-track-bg.svg')!important;
+  background-color:#e7eef4!important;
+}
+html[data-theme="light"] #topbar{
+  background:rgba(247,251,254,.94)!important;
+  border-bottom:1px solid #b9d1df!important;
+  box-shadow:0 8px 24px rgba(31,75,104,.11)!important;
+  backdrop-filter:blur(12px);
+}
+html[data-theme="light"] .navtab{
+  background:rgba(255,255,255,.84)!important;
+  border-color:#c7d9e4!important;
+  color:#173b55!important;
+  box-shadow:0 4px 14px rgba(31,74,101,.06)!important;
+}
+html[data-theme="light"] .navtab:hover,
+html[data-theme="light"] .navtab.active{
+  color:#fff!important;
+  border-color:#159ee7!important;
+  background:linear-gradient(180deg,#22b5ff,#0c83cf)!important;
+  box-shadow:0 7px 17px rgba(0,142,220,.22)!important;
+}
+html[data-theme="light"] .portal-view-toggle,
+html[data-theme="light"] .portal-theme-toggle,
+html[data-theme="light"] .clockbox,
+html[data-theme="light"] .date-chip,
+html[data-theme="light"] .month-nav{
+  background:rgba(255,255,255,.84)!important;
+  border-color:#bdd3df!important;
+  color:#173b55!important;
+}
+html[data-theme="light"] .live-label{color:#167a52!important}
+html[data-theme="light"] .panel{
+  background:rgba(250,253,255,.88)!important;
+  border-color:#a9cbdb!important;
+  box-shadow:0 10px 28px rgba(34,74,97,.09),inset 0 0 0 1px rgba(255,255,255,.7)!important;
+  backdrop-filter:blur(8px);
+}
+html[data-theme="light"] .panel-head{border-bottom-color:#cbdde7!important}
+html[data-theme="light"] .panel-head h1,
+html[data-theme="light"] .panel-head h2,
+html[data-theme="light"] .panel-head h3,
+html[data-theme="light"] .page-title h1{color:#15334a!important}
+html[data-theme="light"] .muted{color:#6f8797!important}
+
+/* Light KPI cards retain type identity but become airy */
+html[data-theme="light"] .kpi{
+  box-shadow:0 12px 26px rgba(30,71,97,.09),inset 0 0 0 1px rgba(255,255,255,.72)!important;
+}
+html[data-theme="light"] .kpi.blue{background:linear-gradient(135deg,rgba(225,245,255,.96),rgba(248,252,255,.95) 68%)!important;border-color:#66c8f3!important}
+html[data-theme="light"] .kpi.green{background:linear-gradient(135deg,rgba(227,250,241,.96),rgba(249,253,251,.95) 68%)!important;border-color:#6fd7ad!important}
+html[data-theme="light"] .kpi.purple{background:linear-gradient(135deg,rgba(242,232,255,.96),rgba(252,249,255,.95) 68%)!important;border-color:#bd8fea!important}
+html[data-theme="light"] .kpi-title h1{color:#173a57!important;text-shadow:none!important}
+html[data-theme="light"] .kpi-title b{color:#36546a!important}
+html[data-theme="light"] .donut:before{background:#f8fcff!important}
+html[data-theme="light"] .donut div{color:#17334b!important}
+html[data-theme="light"] .donut small{color:#526d80!important}
+html[data-theme="light"] .racks .rack{background:linear-gradient(90deg,#eef4f7,#cddce4 50%,#edf4f8)!important;border-color:#b1c7d2!important}
+html[data-theme="light"] .metric{background:rgba(255,255,255,.74)!important}
+html[data-theme="light"] .metric.target{background:#fff0f8!important}
+html[data-theme="light"] .metric.received{background:#edf8ff!important}
+html[data-theme="light"] .metric.queue{background:#fff7ea!important}
+html[data-theme="light"] .metric.completed{background:#edfbf5!important}
+html[data-theme="light"] .metric.testing{background:#fff9e7!important}
+html[data-theme="light"] .metric.stock{background:#f8efff!important}
+
+/* Monthly racing section */
+html[data-theme="light"] .race-row{
+  background:rgba(255,255,255,.77)!important;
+  border-color:#c9dce6!important;
+  box-shadow:0 5px 18px rgba(33,72,97,.06)!important;
+}
+html[data-theme="light"] .race-type,
+html[data-theme="light"] .race-percent{background:rgba(248,252,255,.92)!important}
+html[data-theme="light"] .race-type-name{color:#173750!important;text-shadow:none!important}
+html[data-theme="light"] .race-numbers{color:#49697f!important}
+html[data-theme="light"] .race-numbers span,
+html[data-theme="light"] .race-numbers em{color:#6c8798!important}
+html[data-theme="light"] .race-track{background:linear-gradient(180deg,#eef5f9,#e2edf3)!important;border-color:#a8c5d4!important}
+html[data-theme="light"] .race-percent small{color:#59758a!important}
+html[data-theme="light"] .today-table th,
+html[data-theme="light"] .today-table td{border-color:#d3e1e8!important}
+html[data-theme="light"] .today-table thead th{color:#203e55!important}
+
+/* Inputs/tables/admin */
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] textarea{
+  background:#fff!important;color:#17364d!important;border-color:#b7cfdb!important
+}
+html[data-theme="light"] .table{color:#17364d!important}
+html[data-theme="light"] .table th{color:#235978!important}
+html[data-theme="light"] .table td,
+html[data-theme="light"] .table th{border-color:#d2e1e8!important}
+html[data-theme="light"] .history-serial-btn,
+html[data-theme="light"] .history-detail-head,
+html[data-theme="light"] .history-empty{background:rgba(255,255,255,.78)!important;color:#183951!important;border-color:#c4d9e4!important}
+
+/* Light-mode Test Bay Monitoring: subtle premium border requested */
+html[data-theme="light"] .bay-card{
+  background:rgba(252,254,255,.86)!important;
+  border:1.5px solid #97c6da!important;
+  box-shadow:0 7px 20px rgba(47,91,116,.10),inset 0 0 0 1px rgba(255,255,255,.85)!important;
+}
+html[data-theme="light"] .bay-card:hover{box-shadow:0 10px 24px rgba(32,115,158,.16)!important}
+html[data-theme="light"] .bay-slot{
+  background:linear-gradient(180deg,rgba(245,251,254,.96),rgba(233,244,249,.92))!important;
+  border-color:#b3d2df!important;
+}
+html[data-theme="light"] .bay-slot.empty{border-color:#83c9aa!important}
+html[data-theme="light"] .slot-stage{color:#3d5c70!important}
+html[data-theme="light"] .available{color:#16865b!important}
+html[data-theme="light"] .sts-bay-mini{background:rgba(247,251,253,.88)!important;border-color:#bad3df!important}
+html[data-theme="light"] .sts-mini-head{color:#24465c!important}
+html[data-theme="light"] .capacity-chip{background:#f1f8fb!important;color:#34718d!important;border-color:#b4d2df!important}
+
+/* Weekly cards keep identity in light mode */
+html[data-theme="light"] .weekly-neon-card,
+html[data-theme="light"] .weekly-energy-card{background:rgba(250,253,255,.86)!important;box-shadow:0 8px 22px rgba(41,80,105,.08)!important}
+html[data-theme="light"] .weekly-neon-name b,
+html[data-theme="light"] .weekly-energy-title b{color:#17364d!important;text-shadow:none!important}
+html[data-theme="light"] .weekly-metrics>div{background:#f7fbfd!important;border-color:#ccdde5!important}
+html[data-theme="light"] .weekly-metrics span{color:#638094!important}
+
+/* Faulty area in light theme */
+html[data-theme="light"] .faulty-page #faultBody tr{background:rgba(255,255,255,.86)!important;border-color:#c7dce7!important}
+html[data-theme="light"] .fault-remarks-cell{color:#7d2930!important}
+html[data-theme="light"] .faulty-page #faultBody td[data-label="Fault Remarks"]{background:#fff3f4!important;border-color:#efc7cb!important}
+
+/* Mobile: keep both toggles usable without squeezing the navigation */
+@media(max-width:1100px){
+  .portal-theme-toggle{padding:5px 7px}
+  .theme-icon{display:none}
+}
+@media(max-width:720px){
+  #topbar{gap:8px!important}
+  .portal-theme-toggle{position:absolute;right:14px;top:194px;z-index:3}
+  .portal-view-toggle.compact{margin-right:58px}
+  html[data-theme="light"] .portal-theme-toggle{background:rgba(255,255,255,.9)!important}
+}

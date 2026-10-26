@@ -1865,3 +1865,118 @@ html[data-theme="light"] .portal-login-chip{
   color:#29465d!important;
   box-shadow:0 4px 10px rgba(35,68,90,.08)!important;
 }
+
+
+/* =========================================================
+   v6.14.34 — LIGHT HEADER / SELECTOR POLISH + TODAY FERRARI REMOVE
+   Visual-only. Dark dashboard styling untouched except removal of
+   Today's Status decorative Ferrari watermark.
+   ========================================================= */
+
+/* Remove decorative Ferrari watermark from Today's Status in BOTH themes. */
+.panel:has(.today-table)::after,
+#todayStatus::after,
+.today-status::after,
+.today-panel::after{
+  display:none!important;
+  content:none!important;
+  background:none!important;
+}
+
+/* LIGHT MODE — calmer header family; no bright cyan/blue slab. */
+html[data-theme="light"] #topbar{
+  background:linear-gradient(180deg,#eef3f5 0%,#e3eaee 100%)!important;
+  border-bottom:1px solid #b9c6cd!important;
+  box-shadow:0 3px 10px rgba(39,58,70,.08)!important;
+}
+html[data-theme="light"] .brand.brand-image{
+  background:linear-gradient(145deg,#f9faf8 0%,#eef2ef 100%)!important;
+  border:1px solid #b8c5c2!important;
+  box-shadow:0 3px 9px rgba(43,62,65,.07)!important;
+}
+html[data-theme="light"] .brand.brand-image img{
+  filter:grayscale(.18) saturate(.72) contrast(1.02) brightness(1.03)!important;
+}
+
+/* Neutral nav buttons with a restrained petrol/teal active state. */
+html[data-theme="light"] .navtab{
+  background:linear-gradient(180deg,#fbfcfc 0%,#eef2f3 100%)!important;
+  color:#2d4350!important;
+  border-color:#becbd1!important;
+  box-shadow:0 2px 5px rgba(45,65,76,.05)!important;
+}
+html[data-theme="light"] .navtab:hover{
+  background:linear-gradient(180deg,#f4f8f7,#e6eeec)!important;
+  color:#183f42!important;
+  border-color:#9eb9b5!important;
+  box-shadow:0 3px 7px rgba(39,74,74,.07)!important;
+}
+html[data-theme="light"] .navtab.active{
+  background:linear-gradient(180deg,#5f9f9a 0%,#477f7b 100%)!important;
+  color:#ffffff!important;
+  border-color:#477f7b!important;
+  box-shadow:0 4px 9px rgba(61,111,108,.16)!important;
+}
+
+/* View/theme/date/version controls belong to same header palette. */
+html[data-theme="light"] .portal-view-toggle,
+html[data-theme="light"] .portal-theme-toggle,
+html[data-theme="light"] .clockbox,
+html[data-theme="light"] .date-chip,
+html[data-theme="light"] .app-version-badge{
+  background:linear-gradient(180deg,#fafcfb,#edf2f0)!important;
+  border-color:#bcc9c7!important;
+  color:#29434a!important;
+  box-shadow:none!important;
+}
+
+/* Monthly Performance month selector — remove navy blocks in light mode. */
+html[data-theme="light"] .month-nav{
+  background:#f7f9f8!important;
+  border:1px solid #b9c8c6!important;
+  box-shadow:none!important;
+}
+html[data-theme="light"] .month-nav button{
+  background:#dce7e4!important;
+  color:#315853!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+html[data-theme="light"] .month-nav button:hover{
+  background:#cdded9!important;
+  color:#214944!important;
+}
+html[data-theme="light"] .month-label{
+  background:#f8faf9!important;
+  color:#233f47!important;
+}
+
+/* Weekly month/week selectors — same quiet light family, no dark navy shell. */
+html[data-theme="light"] .weekly-select-shell,
+html[data-theme="light"] .weekly-select-shell.week-select{
+  background:linear-gradient(180deg,#f8faf9,#eef3f1)!important;
+  border-color:#b8c8c5!important;
+  box-shadow:none!important;
+}
+html[data-theme="light"] .weekly-select-shell>span{
+  color:#47746f!important;
+  text-shadow:none!important;
+}
+html[data-theme="light"] .weekly-select-shell select{
+  color:#29434a!important;
+  background:transparent!important;
+}
+html[data-theme="light"] .weekly-select-shell select option{
+  background:#f7faf8!important;
+  color:#29434a!important;
+}
+html[data-theme="light"] .weekly-select-shell>i{
+  color:#62857f!important;
+}
+
+/* Prevent old cyan underline/glow from overpowering the new header palette. */
+html[data-theme="light"] .navtabs{
+  scrollbar-color:#6f9994 #e4ecea!important;
+}
+html[data-theme="light"] .navtabs::-webkit-scrollbar-track{background:#e4ecea!important}
+html[data-theme="light"] .navtabs::-webkit-scrollbar-thumb{background:#6f9994!important}

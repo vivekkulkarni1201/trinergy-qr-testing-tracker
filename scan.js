@@ -58,6 +58,20 @@ function needEng(){
   if(!currentEngineer){showToast('Engineer login required');return false}
   return true;
 }
+
+async function latestAuditForCurrent(){
+  if(!current?.id)return null;
+  const r=await sb.from('tqr_stage_history')
+    .select('engineer_name,stage,result,created_at')
+    .eq('unit_id',current.id)
+    .order('created_at',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(r.error)return null;
+  return r.data||null;
+}
+function currentLoginIsAdmin(){return tqrLoggedEngineer()?.is_admin===true}
+
 function isCompleted(){return !!current&&current.status==='COMPLETED'}
 function blockCompleted(){
   if(!isCompleted())return false;
@@ -140,14 +154,20 @@ async function renderUnit(){
   const st=sstate(),occ=await activeOccupancy(),run=runningHeat(st);
   const login=tqrLoggedEngineer();
   currentEngineer=login?{name:login.name}:null;
+  const latestAudit=await latestAuditForCurrent();
+  const isAdmin=currentLoginIsAdmin();
   const isStock=current.status==='STOCK';
   const bayName=occ?.tqr_bays?.bay_name||'No Bay Allocated';
+  const adminFinalSteps=isAdmin?[['Buffer Stock',isStock],['Completed',current.status==='COMPLETED']]:[];
   const steps=current.ups_type==='STS'
-    ? [['Received',true],['STS Test',!!st.hv_passed],['STS Heatrun',!!st.core_heatrun_passed],['480V',!!st.parameters_480v_saved],['Buffer Stock',isStock],['Completed',current.status==='COMPLETED']]
-    : [['Received',true],['LV',!!st.lv_passed],['Hi-Pot',!!st.hipot_passed],['HV',!!st.hv_passed],['Heatrun',heatDone(st,current)],['480V',!!st.parameters_480v_saved],['Buffer Stock',isStock],['Completed',current.status==='COMPLETED']];
+    ? [['Received',true],['STS Test',!!st.hv_passed],['STS Heatrun',!!st.core_heatrun_passed],['480V',!!st.parameters_480v_saved],...adminFinalSteps]
+    : [['Received',true],['LV',!!st.lv_passed],['Hi-Pot',!!st.hipot_passed],['HV',!!st.hv_passed],['Heatrun',heatDone(st,current)],['480V',!!st.parameters_480v_saved],...adminFinalSteps];
   $('#unitbox').innerHTML=`<div class="panel unit-card stage-console">
     <div class="unit-head mobile-unit-head"><div><span class="eyebrow">${esc(current.qr_code)}</span><div class="serial-big${faultSerialClass(current)}">${esc(current.serial_number||'Serial pending')} <small>• ${current.ups_type}</small></div><div class="current-stage-pill">${esc(current.current_stage||current.status)}</div><div class="bay-pill ${occ?'allocated':'missing'}">▦ ${esc(bayName)}</div></div>
-    <div class="engineer-box engineer-auth-box"><span>Authenticated Engineer</span><strong>👤 ${esc(currentEngineer?.name||'Login required')}</strong></div></div>
+    <div class="engineer-audit-wrap">
+      <div class="engineer-box engineer-auth-box"><span>Logged In</span><strong>👤 ${esc(currentEngineer?.name||'Login required')}</strong></div>
+      <div class="engineer-box engineer-latest-box"><span>Latest Stage Updated By</span><strong>👤 ${esc(latestAudit?.engineer_name||'—')}</strong>${latestAudit?.stage?`<small>${esc(latestAudit.stage)}</small>`:''}</div>
+    </div></div>
     ${run?`<div class="timer-lock"><b>⏱ Timed Event Running</b><span>${timedEventLabel(run)} is active. Pending stages are locked. Only timer completion or Fault is allowed.</span></div>`:''}
     ${!occ&&current.status==='UNDER_TESTING'&&!current.parked?`<div class="bay-warning"><b>⚠ NO PHYSICAL BAY ALLOCATION</b><span>Stage changes are blocked until a compatible bay is assigned.</span></div>`:''}
     ${isStock?`<div class="buffer-banner"><b>◇ BUFFER STOCK</b><span>Testing is complete. Only Completed is available.</span></div>`:''}
@@ -162,7 +182,11 @@ function renderActions(occ){
   if(current.status==='COMPLETED'){$('#actions').innerHTML='';return}
   if(current.status==='RTA'){a.push(`<div class="action fault-card final-only"><h4>Faulty Area</h4><a class="btn danger" href="faulty.html">OPEN FAULTY AREA</a></div>`);$('#actions').innerHTML=a.join('');return}
   if(current.parked){a.push(`<div class="action parking-card final-only"><h4>Parking Area</h4><a class="btn green big-action" href="parking.html">OPEN PARKING AREA</a></div>`);$('#actions').innerHTML=a.join('');return}
-  if(current.status==='STOCK'){a.push(`<div class="action final-only"><h4>Buffer Stock</h4><button class="green big-action" onclick="finishFromStock()">MARK COMPLETED</button></div>`);$('#actions').innerHTML=a.join('');return}
+  if(current.status==='STOCK'){
+    if(currentLoginIsAdmin())a.push(`<div class="action final-only"><h4>Buffer Stock</h4><button class="green big-action" onclick="finishFromStock()">MARK COMPLETED</button></div>`);
+    else a.push(`<div class="action final-only admin-wait-card"><h4>Buffer Stock</h4><b>ADMIN MANAGER ONLY</b><span>Final movement / completion is controlled by Admin.</span></div>`);
+    $('#actions').innerHTML=a.join('');return;
+  }
   if(current.status==='UNDER_TESTING'&&!occ){
     $('#actions').innerHTML=`<div class="action bay-required"><h4>Physical Bay Required</h4><button onclick="assignBayOnly()">ASSIGN BAY TO CONTINUE</button></div><div class="action fault-card"><h4>Fault / RTA</h4><button class="danger" onclick="markFaulty()">MARK UPS FAULTY</button></div>`;return;
   }
@@ -180,7 +204,10 @@ function renderActions(occ){
       else a.push(`<div class="action"><h4>Move for Heatrun</h4><button onclick="moveStsToHeatrun()">MOVE TO STS HEATRUN BAY</button></div>`);
     }else a.push(heatBox('core_heatrun','STS Heatrun',st,null));
     if(st.core_heatrun_passed&&!st.parameters_480v_saved)a.push(`<div class="action"><h4>480V / Parameters</h4><button class="green" onclick="params()">SAVE / PASS</button></div>`);
-    if(st.parameters_480v_saved)a.push(`<div class="action"><h4>Final Exit</h4><button class="green" onclick="exitUnit('COMPLETED')">COMPLETED</button><button class="warn" onclick="exitUnit('STOCK')">BUFFER STOCK</button></div>`);
+    if(st.parameters_480v_saved){
+      if(currentLoginIsAdmin())a.push(`<div class="action admin-final-action"><h4>Final Disposition</h4><button class="green" onclick="exitUnit('COMPLETED')">COMPLETED</button><button class="warn" onclick="exitUnit('STOCK')">BUFFER STOCK</button></div>`);
+      else a.push(`<div class="action admin-wait-card"><h4>Testing Complete</h4><b>480V / PARAMETERS SAVED</b><span>Awaiting Admin Manager decision for Buffer Stock / Completed.</span></div>`);
+    }
   }else{
     if(!st.lv_passed)a.push(`<div class="action"><h4>LV / Hi-Pot</h4><button class="green" onclick="hipot()">LV COMPLETE + HI-POT PASS</button></div>`);
     else if(!st.hv_started)a.push(`<div class="action"><h4>HV Testing</h4><button onclick="startHV()">START HV TESTING</button></div>`);
@@ -191,7 +218,10 @@ function renderActions(occ){
       a.push(heatBox('booster_2','Booster 2',st,null));
       if(current.ups_type==='3X')a.push(heatBox('booster_3','Booster 3',st,null));
       if(heatDone(st,current)&&!st.parameters_480v_saved)a.push(`<div class="action"><h4>480V / Parameters</h4><button class="green" onclick="params()">SAVE / PASS</button></div>`);
-      if(st.parameters_480v_saved)a.push(`<div class="action"><h4>Final Exit</h4><button class="green" onclick="exitUnit('COMPLETED')">COMPLETED</button><button class="warn" onclick="exitUnit('STOCK')">BUFFER STOCK</button></div>`);
+      if(st.parameters_480v_saved){
+      if(currentLoginIsAdmin())a.push(`<div class="action admin-final-action"><h4>Final Disposition</h4><button class="green" onclick="exitUnit('COMPLETED')">COMPLETED</button><button class="warn" onclick="exitUnit('STOCK')">BUFFER STOCK</button></div>`);
+      else a.push(`<div class="action admin-wait-card"><h4>Testing Complete</h4><b>480V / PARAMETERS SAVED</b><span>Awaiting Admin Manager decision for Buffer Stock / Completed.</span></div>`);
+    }
     }
   }
   if(current.status==='UNDER_TESTING'){
@@ -286,7 +316,9 @@ async function params(){
 }
 async function exitUnit(status){
   if(blockCompleted())return;
-  if(!needEng())return;const now=nowIso();
+  if(!needEng())return;
+  if(!await tqrRequireAdmin())return;
+  const now=nowIso();
   const p=status==='COMPLETED'?{status,current_stage:'COMPLETED',completed_at:now,parked:false}:{status,current_stage:'BUFFER STOCK',stock_at:now,parked:false};
   const r=await sb.from('tqr_units').update(p).eq('id',current.id).neq('status','COMPLETED').select('id,status').maybeSingle();
   if(r.error)return showToast(r.error.message);
@@ -298,7 +330,9 @@ async function exitUnit(status){
 }
 async function finishFromStock(){
   if(blockCompleted())return;
-  if(!needEng())return;const now=nowIso();
+  if(!needEng())return;
+  if(!await tqrRequireAdmin())return;
+  const now=nowIso();
   const r=await sb.from('tqr_units').update({status:'COMPLETED',current_stage:'COMPLETED',completed_at:now,parked:false}).eq('id',current.id).eq('status','STOCK').select('id').maybeSingle();
   if(r.error)return showToast(r.error.message);
   if(!r.data)return showToast('UPS is no longer in Buffer Stock');

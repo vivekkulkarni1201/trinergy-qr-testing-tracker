@@ -268,10 +268,10 @@ function showUnitHistory(unitId){
  const u=_historyData.u.find(x=>String(x.id)===String(unitId));if(!u)return;
  const rows=_historyData.h.filter(h=>String(h.unit_id)===String(unitId)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
  const serial=fullSerial(u)||u.serial_number||u.qr_code||'UPS';
- const received=`<tr><td>${u.received_at?new Date(u.received_at).toLocaleString():'—'}</td><td>Received</td><td>—</td><td>RECEIVED</td></tr>`;
+ const hasAuditedReceived=rows.some(h=>String(h.stage||'').toUpperCase()==='RECEIVED');
+ const fallbackReceived=!hasAuditedReceived&&u.received_at?`<tr><td>${new Date(u.received_at).toLocaleString()}</td><td>Received</td><td>—</td><td>RECEIVED</td><td>Legacy record</td></tr>`:'';
  const hist=rows.map(h=>`<tr><td>${new Date(h.created_at).toLocaleString()}</td><td>${esc(h.stage||'—')}</td><td>${esc(h.engineer_name||'—')}</td><td>${esc(h.result||'')}</td><td>${esc(h.notes||'—')}</td></tr>`).join('');
- const receivedWithNotes=received.replace('</tr>','<td>—</td></tr>');
- $('#historyDetail').innerHTML=`<div class="history-detail-head"><div><small>${esc(u.ups_type)}</small><h3>${esc(serial)}</h3></div><div><span class="history-status">${esc(u.status||'')}</span><span>${esc(u.current_stage||'')}</span></div></div><div class="history-table-wrap"><table class="table history-timeline"><thead><tr><th>Date/Time</th><th>Stage / Movement</th><th>Engineer</th><th>Result</th><th>Remarks / Notes</th></tr></thead><tbody>${receivedWithNotes}${hist||'<tr><td colspan="5">No stage history recorded yet.</td></tr>'}</tbody></table></div>`;
+ $('#historyDetail').innerHTML=`<div class="history-detail-head"><div><small>${esc(u.ups_type)}</small><h3>${esc(serial)}</h3></div><div><span class="history-status">${esc(u.status||'')}</span><span>${esc(u.current_stage||'')}</span></div></div><div class="history-table-wrap"><table class="table history-timeline"><thead><tr><th>Date/Time</th><th>Stage / Movement</th><th>Engineer</th><th>Result</th><th>Remarks / Notes</th></tr></thead><tbody>${fallbackReceived}${hist||'<tr><td colspan="5">No stage history recorded yet.</td></tr>'}</tbody></table></div>`;
 }
 
 

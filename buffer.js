@@ -1,6 +1,9 @@
 
 mountTopbar('buffer');
+let _bufferAdminAuthorized=false;
+
 async function finish(id){
+ if(!await tqrRequireAdmin())return;
  const now=nowIso();
  let r=await sb.from('tqr_units').update({status:'COMPLETED',current_stage:'TO FINISHING / COMPLETED',completed_at:now}).eq('id',id);
  if(r.error)return showToast(r.error.message);
@@ -8,11 +11,18 @@ async function finish(id){
  showToast('Moved to Finishing'); boot();
 }
 async function boot(){
+ if(!_bufferAdminAuthorized){
+   const admin=await tqrRequireAdmin(false);
+   if(!admin){
+     showToast('Buffer Stock is Admin Manager only');
+     setTimeout(()=>{const u=new URL('index.html',location.href);u.searchParams.set('view','testing');location.replace(u.toString())},450);
+     return;
+   }
+   _bufferAdminAuthorized=true;
+ }
  const d=await loadCore(), rows=d.u.filter(x=>x.status==='STOCK');
- $('#bufferBody').innerHTML=rows.map(u=>`<tr><td><a class="serial-link" href="scan.html?qr=${encodeURIComponent(u.qr_code)}">${esc(u.serial_number||u.qr_code)}</a></td><td>${u.ups_type}</td><td>${esc(u.current_stage)}</td><td>${u.stock_at?new Date(u.stock_at).toLocaleString():'—'}</td><td><button class="green" onclick="finish('${u.id}')">To Finishing</button></td></tr>`).join('')||'<tr><td colspan="5">Buffer stock empty.</td></tr>';
+ $('#bufferBody').innerHTML=rows.map(u=>`<tr><td><a class="serial-link" href="scan.html?qr=${encodeURIComponent(u.qr_code)}">${esc(fullSerial(u)||u.serial_number||u.qr_code)}</a></td><td>${u.ups_type}</td><td>${esc(u.current_stage)}</td><td>${u.stock_at?new Date(u.stock_at).toLocaleString():'—'}</td><td><button class="green" onclick="finish('${u.id}')">To Finishing</button></td></tr>`).join('')||'<tr><td colspan="5">Buffer stock empty.</td></tr>';
 }
 window.finish=finish; boot().catch(e=>showToast(e.message));
-
 realtimeWatch('buffer',['tqr_units','tqr_stage_state','tqr_bay_occupancy','tqr_stage_history'],()=>boot());
-
 startPolling('buffer',()=>boot().catch(()=>{}),5000);

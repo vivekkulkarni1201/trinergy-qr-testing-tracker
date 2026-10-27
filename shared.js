@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.35';
+const TQR_APP_VERSION = 'v6.14.36';
 
 /* v6.14.22 — secure persistent engineer session + admin role */
 const TQR_LOGIN_KEY='tqr_engineer_portal_session';
@@ -40,20 +40,8 @@ function applyPortalTheme(){
     document.body.classList.toggle('theme-light',theme==='light');
     document.body.classList.toggle('theme-dark',theme!=='light');
   }
-  try{ refreshThemeBrandImages(); }catch{}
   return theme;
 }
-
-function refreshThemeBrandImages(){
-  const theme=(document.documentElement&&document.documentElement.dataset&&document.documentElement.dataset.theme)||getPortalTheme();
-  const useLight=theme==='light';
-  document.querySelectorAll('.brand-image img,.portal-login-brand img').forEach(img=>{
-    const darkSrc='trinergy-brand-banner.png';
-    const lightSrc='trinergy-brand-banner-light-v61435.png';
-    img.src = useLight ? lightSrc : darkSrc;
-  });
-}
-
 function setPortalTheme(theme){
   const next=theme==='light'?'light':'dark';
   try{
@@ -95,8 +83,30 @@ async function tqrAuditLog(unitId,action,stage,result='PASS',notes=null){
 }
 window.tqrLoggedEngineer=tqrLoggedEngineer;
 window.tqrAuditLog=tqrAuditLog;
+
+/* v6.14.36 — authoritative admin check for final disposition actions */
+async function tqrRequireAdmin(showMessage=true){
+  const saved=tqrGetSavedLogin();
+  if(!saved?.session_token){
+    if(showMessage)showToast('Admin Manager login required');
+    return null;
+  }
+  try{
+    const row=await tqrValidateSession(saved);
+    if(!row || row.is_admin!==true){
+      if(showMessage)showToast('Admin Manager access only');
+      return null;
+    }
+    return row;
+  }catch(e){
+    if(showMessage)showToast('Unable to verify Admin Manager session');
+    return null;
+  }
+}
+window.tqrRequireAdmin=tqrRequireAdmin;
+
 function tqrNeedsLogin(){return getPortalView()==='testing'}
-function tqrLoginOverlay(){window._tqrAuthBusy=true;let o=document.querySelector('.portal-login-overlay');if(o)return o;o=document.createElement('div');o.className='portal-login-overlay';o.innerHTML=`<div class="portal-login-card"><div class="portal-login-brand"><img src="trinergy-brand-banner.png" alt="TRINERGY"></div><div class="portal-login-eyebrow">AUTHORIZED PERSONNEL ONLY</div><h2>Engineer Login</h2><p>Login once on this browser. Your login stays remembered until Logout or Admin disables your account.</p><label>Engineer Name<select id="portalLoginEngineer"><option>Loading engineers…</option></select></label><label>Password<input id="portalLoginId" type="password" autocomplete="current-password" placeholder="Enter Employee ID"><small class="portal-login-hint">Your Employee ID is your password.</small></label><button type="button" id="portalLoginBtn">Login to Trinergy Tracker</button><div id="portalLoginMsg" class="portal-login-msg"></div></div>`;document.body.appendChild(o);try{refreshThemeBrandImages()}catch{};return o}
+function tqrLoginOverlay(){window._tqrAuthBusy=true;let o=document.querySelector('.portal-login-overlay');if(o)return o;o=document.createElement('div');o.className='portal-login-overlay';o.innerHTML=`<div class="portal-login-card"><div class="portal-login-brand"><img src="trinergy-brand-banner.png" alt="TRINERGY"></div><div class="portal-login-eyebrow">AUTHORIZED PERSONNEL ONLY</div><h2>Engineer Login</h2><p>Login once on this browser. Your login stays remembered until Logout or Admin disables your account.</p><label>Engineer Name<select id="portalLoginEngineer"><option>Loading engineers…</option></select></label><label>Password<input id="portalLoginId" type="password" autocomplete="current-password" placeholder="Enter Employee ID"><small class="portal-login-hint">Your Employee ID is your password.</small></label><button type="button" id="portalLoginBtn">Login to Trinergy Tracker</button><div id="portalLoginMsg" class="portal-login-msg"></div></div>`;document.body.appendChild(o);return o}
 async function tqrEngineerNames(){const r=await sb.rpc('tqr_engineer_names');if(r.error)throw r.error;return(r.data||[]).map(x=>String(x.engineer_name||'').trim()).filter(Boolean)}
 async function tqrShowLogin(){const o=tqrLoginOverlay(),dd=o.querySelector('#portalLoginEngineer'),msg=o.querySelector('#portalLoginMsg');let names=[];try{names=await tqrEngineerNames();dd.innerHTML='<option value="">Select registered engineer…</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}catch(e){dd.innerHTML='<option value="">Unable to load engineer list</option>';msg.textContent='Unable to verify engineers. Check network and try again.'}const doLogin=async()=>{msg.textContent='';const engineer_name=String(dd.value||'').trim(),employee_id=String(o.querySelector('#portalLoginId').value||'').trim();if(!engineer_name){msg.textContent='Select a registered engineer.';return}if(!employee_id){msg.textContent='Enter your Employee ID.';return}const r=await sb.rpc('tqr_engineer_login',{p_engineer_name:engineer_name,p_employee_id:employee_id});if(r.error){msg.textContent='Login verification failed.';return}const row=Array.isArray(r.data)?r.data[0]:r.data;if(!row?.session_token){msg.textContent='Authorized personnel only — invalid Employee ID.';return}const saved=tqrSaveLogin(row);applyPortalTheme();window._tqrAuthBusy=false;o.remove();tqrShowLoggedInChip(saved);tqrRefreshTopbar();tqrApplyAdminGate(saved);showToast('Engineer login successful');if(window._tqrDeferredReload){window._tqrDeferredReload=false;setTimeout(()=>location.reload(),500)}};o.querySelector('#portalLoginBtn').onclick=doLogin;o.querySelector('#portalLoginId').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()})}
 function tqrShowLoggedInChip(row){document.querySelector('.portal-login-chip')?.remove();const chip=document.createElement('div');chip.className='portal-login-chip';chip.innerHTML=`<span>👤 ${esc(row.name||row.engineer_name||'Engineer')}</span>${row.is_admin===true?'<b class="admin-role-chip">ADMIN</b>':''}<button type="button">Logout</button>`;chip.querySelector('button').onclick=tqrLogout;document.body.appendChild(chip)}
@@ -211,7 +221,10 @@ function navHtml(active){
     allItems.splice(allItems.length-1,0,['admin','admin.html','⚙','Admin']);
   }
   const allowedPublic=new Set(publicAllowedPages());
-  const items=currentView==='public' ? allItems.filter(x=>allowedPublic.has(x[0])) : allItems;
+  let items=currentView==='public' ? allItems.filter(x=>allowedPublic.has(x[0])) : allItems;
+  if(currentView==='testing' && session?.is_admin!==true){
+    items=items.filter(x=>x[0]!=='buffer' && x[0]!=='admin');
+  }
   return `<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div>
   <nav class="navtabs">${items.map(([id,href,icon,label])=>{
       const url=new URL(href,location.href);

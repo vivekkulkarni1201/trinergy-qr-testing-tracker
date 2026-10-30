@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.37';
+const TQR_APP_VERSION = 'v6.14.38';
 
 /* v6.14.22 — secure persistent engineer session + admin role */
 const TQR_LOGIN_KEY='tqr_engineer_portal_session';
@@ -293,12 +293,18 @@ async function table(name, select='*'){
   return r.data || [];
 }
 async function loadCore(){
+  // v6.14.38: stage history is the fastest-growing table. Only pages that
+  // actually render audit/history data download it. Dashboard / Parking /
+  // Buffer / Bays / Scan no longer pull the full history table on each refresh.
+  const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+  const needsHistory=['active.html','admin.html','reports.html','faulty.html'].includes(page);
+  const historyPromise=needsHistory?table('tqr_stage_history'):Promise.resolve([]);
   const [u,t,b,o,h,st,op,hist]=await Promise.all([
     table('tqr_units'),
     table('tqr_monthly_targets'),
     table('tqr_bays'),
     table('tqr_bay_occupancy'),
-    table('tqr_stage_history'),
+    historyPromise,
     table('tqr_stage_state'),
     table('tqr_month_opening_counts'),
     table('tqr_historical_months')
@@ -334,10 +340,16 @@ function counts(data,type,m){
 }
 function activeOcc(data,bayId,section){ return data.o.find(x=>x.bay_id===bayId && x.section===section); }
 function unitForOcc(data,o){ return o && data.u.find(u=>u.id===o.unit_id); }
-async function getTimers(){
+let _tqrTimerCache=null,_tqrTimerCacheAt=0;
+async function getTimers(force=false){
+  const now=Date.now();
+  // Timer values are configuration, not live process data. Cache for 60 s so
+  // the 1-second countdown UI does not generate a Supabase SELECT every tick.
+  if(!force && _tqrTimerCache && now-_tqrTimerCacheAt<60000) return _tqrTimerCache;
   const d = {core_heatrun_seconds:120,booster_heatrun_seconds:60,sts_heatrun_seconds:120};
-  const r = await sb.from('tqr_settings').select('*');
+  const r = await sb.from('tqr_settings').select('setting_key,setting_value').in('setting_key',['core_heatrun_seconds','booster_heatrun_seconds','sts_heatrun_seconds']);
   if(!r.error) (r.data||[]).forEach(x=>{ if(x.setting_key in d) d[x.setting_key]=Number(x.setting_value); });
+  _tqrTimerCache=d;_tqrTimerCacheAt=now;
   return d;
 }
 function stateOf(u){ return Array.isArray(u?.tqr_stage_state) ? u.tqr_stage_state[0] : u?.tqr_stage_state; }
@@ -356,10 +368,16 @@ function mountScanHeader(){
   e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="portal-theme-toggle compact" aria-label="Dark or light theme" title="Theme"><span class="theme-icon theme-moon">☾</span><label class="portal-theme-switch"><input type="checkbox" data-theme-toggle ${getPortalTheme()==='light'?'checked':''}><span class="portal-theme-slider"></span></label><span class="theme-icon theme-sun">☀</span></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`; bindThemeSwitch(); mountVersionBadge();
 }
 let _rtTimers={};
+window._tqrRealtimeHealth=window._tqrRealtimeHealth||{};
 function realtimeWatch(name,tables,callback,delay=180){
   const ch=sb.channel('rt-'+name+'-'+Math.random().toString(36).slice(2,7));
-  tables.forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{clearTimeout(_rtTimers[name]);_rtTimers[name]=setTimeout(callback,delay)}));
-  ch.subscribe(); return ch;
+  const effectiveDelay=Math.max(800,Number(delay)||0); // coalesce one stage action's multiple DB events
+  tables.forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},()=>{
+    clearTimeout(_rtTimers[name]);
+    _rtTimers[name]=setTimeout(callback,effectiveDelay);
+  }));
+  ch.subscribe(status=>{window._tqrRealtimeHealth[name]=status==='SUBSCRIBED'});
+  return ch;
 }
 
 function fullSerial(u){
@@ -387,7 +405,13 @@ function fullSerial(u){
 function faultSerialClass(u){return u?.faulted?' faulted-serial':''}
 function runningTimedEvent(u){const s=stateOf(u)||{};return ['core_heatrun','booster_1','booster_2','booster_3'].find(k=>s[k+'_started']&&!s[k+'_passed'])||null}
 function timedEventLabel(k){return k==='core_heatrun'?'Core Heatrun':k?k.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase()):''}
-function startPolling(name,callback,ms=2500){if(window['_poll_'+name])clearInterval(window['_poll_'+name]);window['_poll_'+name]=setInterval(()=>{if(document.visibilityState==='visible')callback()},ms)}
+function startPolling(name,callback,ms=2500){
+  // v6.14.38 low-egress safety net. Realtime remains the instant-update path;
+  // polling is only a slow fallback, never faster than 60 seconds.
+  if(window['_poll_'+name])clearInterval(window['_poll_'+name]);
+  const interval=Math.max(60000,Number(ms)||60000);
+  window['_poll_'+name]=setInterval(()=>{if(document.visibilityState==='visible')callback()},interval);
+}
 
 function savePageCache(key,value){try{localStorage.setItem('tqr_cache_'+key,JSON.stringify({ts:Date.now(),value}))}catch{}}
 function loadPageCache(key,maxAge=3600000){try{const x=JSON.parse(localStorage.getItem('tqr_cache_'+key)||'null');return x&&Date.now()-x.ts<maxAge?x.value:null}catch{return null}}

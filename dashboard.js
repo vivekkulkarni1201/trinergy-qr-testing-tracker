@@ -1,6 +1,7 @@
 
 mountTopbar('dashboard');
 let data, selectedMonth = ym(), kpiAssets={};
+const _weeklyTargetCache=new Map();
 function monthParts(){const [y,m]=selectedMonth.split('-').map(Number);return {y,m};}
 function monthLabel(){const {y,m}=monthParts();return new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});}
 function shiftMonth(delta){
@@ -170,8 +171,12 @@ async function renderWeekly(){
  }
  if(selectedWeek===null||selectedWeek>=weeks.length)selectedWeek=currentIndex;
 
- const wr=await sb.from('tqr_weekly_targets').select('*').eq('month_start',month+'-01');
- const wm=Object.fromEntries((wr.data||[]).map(x=>[`${x.week_no}_${x.ups_type}`,Number(x.target)||0]));
+ let weekRows=_weeklyTargetCache.get(month);
+ if(!weekRows || Date.now()-weekRows.ts>300000){
+   const wr=await sb.from('tqr_weekly_targets').select('week_no,ups_type,target').eq('month_start',month+'-01');
+   weekRows={ts:Date.now(),data:wr.data||[]};_weeklyTargetCache.set(month,weekRows);
+ }
+ const wm=Object.fromEntries((weekRows.data||[]).map(x=>[`${x.week_no}_${x.ups_type}`,Number(x.target)||0]));
  const calendarDaysMonth=new Date(y,m,0).getDate();
 
  const monShort=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'short'});
@@ -248,7 +253,7 @@ async function boot(){
   if(cached){try{data=cached;renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()}catch{}}
   const qr=new URLSearchParams(location.search).get('qr');
   if(qr){ location.replace(`scan.html?qr=${encodeURIComponent(qr)}`); return; }
-  data=await loadCore();savePageCache('dashboard',data);const ar=await sb.from('tqr_ui_assets').select('*');if(!ar.error)(ar.data||[]).forEach(x=>{if(x.asset_key.startsWith('kpi_'))kpiAssets[x.asset_key.slice(4)]=x.public_url});renderKpis(); renderPerformance(); renderToday(); await renderBays(); await renderWeekly();
+  data=await loadCore();savePageCache('dashboard',data);const ar=await sb.from('tqr_ui_assets').select('asset_key,public_url');if(!ar.error)(ar.data||[]).forEach(x=>{if(x.asset_key.startsWith('kpi_'))kpiAssets[x.asset_key.slice(4)]=x.public_url});renderKpis(); renderPerformance(); renderToday(); await renderBays(); await renderWeekly();
   setInterval(refreshTimers,1000);
 }
 $('#prevMonth').onclick=()=>shiftMonth(-1); $('#nextMonth').onclick=()=>shiftMonth(1);
@@ -298,4 +303,4 @@ startPolling('dashboard',async()=>{try{
     data=fresh;
     renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly();
   }
-}catch(e){}},5000);
+}catch(e){}},60000);

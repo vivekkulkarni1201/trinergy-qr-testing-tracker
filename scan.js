@@ -62,13 +62,12 @@ function needEng(){
 async function latestAuditForCurrent(){
   if(!current?.id)return null;
   const r=await sb.from('tqr_stage_history')
-    .select('engineer_name,stage,result,created_at')
+    .select('*')
     .eq('unit_id',current.id)
     .order('created_at',{ascending:false})
-    .limit(1)
-    .maybeSingle();
+    .limit(25);
   if(r.error)return null;
-  return r.data||null;
+  return (r.data||[]).find(tqrIsActualUpdateEvent)||null;
 }
 function currentLoginIsAdmin(){return tqrLoggedEngineer()?.is_admin===true}
 

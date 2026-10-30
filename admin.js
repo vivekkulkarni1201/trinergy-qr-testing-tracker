@@ -266,7 +266,7 @@ async function loadHistory(){
 function showUnitHistory(unitId){
  if(!_historyData)return;
  const u=_historyData.u.find(x=>String(x.id)===String(unitId));if(!u)return;
- const rows=_historyData.h.filter(h=>String(h.unit_id)===String(unitId)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+ const rows=_historyData.h.filter(h=>String(h.unit_id)===String(unitId)&&tqrIsActualUpdateEvent(h)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
  const serial=fullSerial(u)||u.serial_number||u.qr_code||'UPS';
  const hasAuditedReceived=rows.some(h=>String(h.stage||'').toUpperCase()==='RECEIVED');
  const fallbackReceived=!hasAuditedReceived&&u.received_at?`<tr><td>${new Date(u.received_at).toLocaleString()}</td><td>Received</td><td>—</td><td>RECEIVED</td><td>Legacy record</td></tr>`:'';

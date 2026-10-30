@@ -1,4 +1,4 @@
-const CACHE_NAME='trinergy-pwa-v6.14.36';
+const CACHE_NAME='trinergy-pwa-v6.14.37';
 
 // Keep initial install deliberately small for iPhone/Safari.
 // Other pages/assets are cached on demand after first use.
@@ -12,6 +12,7 @@ const CORE_SHELL=[
   './imola-dark-v61432.jpg',
   './imola-light-v61432.jpg',
   './imola-track-bg.svg',
+  './vertiv-logo-light-v61437.png',
   './manifest.webmanifest',
   './trinergy-app-icon-180-v6147.png',
   './trinergy-app-icon-192-v6147.png',

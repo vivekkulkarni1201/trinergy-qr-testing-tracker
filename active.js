@@ -1,7 +1,7 @@
 
 mountTopbar('active');
 function latestHistoryForUnit(d,unitId){
-  return (d.h||[]).filter(h=>String(h.unit_id)===String(unitId)).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0))[0]||null;
+  return (d.h||[]).filter(h=>String(h.unit_id)===String(unitId)&&tqrIsActualUpdateEvent(h)).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0))[0]||null;
 }
 async function boot(){
   const d=await loadCore(), rows=d.u.filter(x=>x.status==='UNDER_TESTING'||x.status==='RECEIVED');

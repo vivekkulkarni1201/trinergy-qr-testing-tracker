@@ -38,16 +38,30 @@ async function openQR(){
   await renderUnit();
 }
 function renderNew(code){
-  $('#unitbox').innerHTML=`<div class="panel"><div class="panel-body mobile-new"><span class="eyebrow">NEW QR</span><h2>${esc(code)}</h2><p>First scan records Received only.</p><div class="receive-grid">${['3X','2X','STS'].map(t=>`<button onclick="receive('${t}')">${t}<small>Receive UPS</small></button>`).join('')}</div></div></div>`;
+  $('#unitbox').innerHTML=`<div class="panel"><div class="panel-body mobile-new"><span class="eyebrow">NEW QR</span><h2>${esc(code)}</h2><p>First scan records Received and assigns the serial number immediately. Testing will remain in Waiting for Testing until Start Testing is selected.</p><div class="receive-grid">${['3X','2X','STS'].map(t=>`<button onclick="receive('${t}')">${t}<small>Receive UPS</small></button>`).join('')}</div></div></div>`;
 }
 async function receive(type){
   if(!needEng())return;
   const code=$('#qr').value.trim();
   let r=await sb.from('tqr_units').insert({qr_code:code,ups_type:type,status:'RECEIVED',current_stage:'RECEIVED'});
   if(r.error)return showToast(r.error.message);
-  const u=(await sb.from('tqr_units').select('id').eq('qr_code',code).single()).data;
+
+  const q=await sb.from('tqr_units').select('id,serial_number').eq('qr_code',code).single();
+  if(q.error||!q.data?.id)return showToast(q.error?.message||'UPS received, but unit could not be reloaded');
+  const u=q.data;
+
+  // v6.14.39: serial is allocated at RECEIVING, not at Start Testing.
+  // Status stays RECEIVED so the UPS remains Waiting for Testing and is NOT counted Under Testing.
+  if(!u.serial_number){
+    const sr=await sb.rpc('tqr_assign_serial',{p_unit_id:u.id});
+    if(sr.error)return showToast('UPS received, but serial assignment failed: '+sr.error.message);
+  }
+
   try{await tqrAuditLog(u.id,'RECEIVED','RECEIVED','PASS')}catch(e){return showToast(e.message||'Audit log failed')}
-  showToast(type+' received');await openQR();await loadDropdown();
+  const fresh=await sb.from('tqr_units').select('serial_number').eq('id',u.id).single();
+  const serial=fresh.data?.serial_number||'';
+  showToast(serial?`${type} received • ${serial} • Waiting for Testing`:`${type} received • Waiting for Testing`);
+  await openQR();await loadDropdown();
 }
 async function log(action,stage,result='PASS',notes=null){
   await tqrAuditLog(current.id,action,stage,result,notes);
@@ -195,7 +209,7 @@ function renderActions(occ){
     $('#actions').innerHTML=a.join('');startTimerUi(st);return;
   }
   if(current.status==='RECEIVED'){
-    a.push(`<div class="action primary-stage"><h4>Start Testing</h4><button onclick="startTesting()">Assign Serial + Select Bay</button></div>`);
+    a.push(`<div class="action primary-stage"><h4>Start Testing</h4><button onclick="startTesting()">Select Bay + Start Testing</button></div>`);
   }else if(current.ups_type==='STS'){
     if(!st.hv_passed)a.push(`<div class="action"><h4>STS Test</h4><button class="green" onclick="passStsTest()">MARK STS TEST PASSED</button></div>`);
     else if(!st.core_heatrun_started&&!st.core_heatrun_passed){
@@ -235,6 +249,7 @@ async function startTesting(){
   if(blockCompleted())return;
   if(!needEng())return;
   let pick=current.ups_type==='STS'?await chooseStsBay('STS_TEST'):await chooseCoreBay();if(!pick)return;
+  // Safety fallback only for legacy RECEIVED units created before v6.14.39. New receipts already have serials.
   if(!current.serial_number){const r=await sb.rpc('tqr_assign_serial',{p_unit_id:current.id});if(r.error)return showToast(r.error.message)}
   if(!await assignOccupancy(pick))return;
   const now=nowIso(),stage=current.ups_type==='STS'?'STS TESTING IN PROGRESS':'LV TESTING IN PROGRESS';

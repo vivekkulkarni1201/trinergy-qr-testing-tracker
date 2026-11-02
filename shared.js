@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.39';
+const TQR_APP_VERSION = 'v6.14.40';
 
 /* v6.14.22 — secure persistent engineer session + admin role */
 const TQR_LOGIN_KEY='tqr_engineer_portal_session';
@@ -321,15 +321,23 @@ function counts(data,type,m){
   const arr = data.u.filter(x=>x.ups_type===type);
   const currentMonth=ym();
   const historical=(data.hist||[]).find(x=>x.ups_type===type && monthOf(x.month_start)===m);
-  // Closed/past months should use the historical monthly summary when it exists.
-  if(m<currentMonth && historical){
+  const targetRow=(data.t||[]).find(x=>x.ups_type===type && monthOf(x.month_start)===m);
+  const openingRow=(data.op||[]).find(x=>x.ups_type===type && monthOf(x.month_start)===m);
+  const liveReceived=arr.filter(x=>monthOf(x.received_at)===m).length;
+  const liveCompleted=arr.filter(x=>x.status==='COMPLETED' && monthOf(x.completed_at)===m).length;
+
+  // v6.14.40 month-rollover rule:
+  // If the tracker has real data for a month (opening/backfill or actual unit events),
+  // keep using that real tracker data even after the calendar moves to the next month.
+  // Historical summary is only a fallback for pre-tracker/manual-only months.
+  const hasTrackerData=Boolean(openingRow) || liveReceived>0 || liveCompleted>0;
+  if(m<currentMonth && historical && !hasTrackerData){
     const target=Number(historical.target||0),received=Number(historical.received||0),completed=Number(historical.completed||0);
     return {target,received,completed,openingReceived:0,openingCompleted:0,liveReceived:0,liveCompleted:0,under:0,stock:0,faulty:0,queue:Math.max(0,received-completed)};
   }
-  const target = Number(data.t.find(x=>x.ups_type===type && monthOf(x.month_start)===m)?.target || historical?.target || 0);
+
+  const target=Number(targetRow?.target || historical?.target || 0);
   const opening=openingCounts(data,type,m);
-  const liveReceived=arr.filter(x=>monthOf(x.received_at)===m).length;
-  const liveCompleted=arr.filter(x=>x.status==='COMPLETED' && monthOf(x.completed_at)===m).length;
   const received=opening.received + liveReceived;
   const completed=opening.completed + liveCompleted;
   const under=arr.filter(x=>x.status==='UNDER_TESTING').length;

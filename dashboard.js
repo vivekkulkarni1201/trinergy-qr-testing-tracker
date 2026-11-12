@@ -1,6 +1,5 @@
-
 mountTopbar('dashboard');
-let data, selectedMonth = ym(), kpiAssets={};
+let data, selectedMonth = ym(), kpiAssets={}, dashboardTimerCfg={core_heatrun_seconds:120,booster_heatrun_seconds:60,sts_heatrun_seconds:120};
 const _weeklyTargetCache=new Map();
 function monthParts(){const [y,m]=selectedMonth.split('-').map(Number);return {y,m};}
 function monthLabel(){const {y,m}=monthParts();return new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});}
@@ -109,6 +108,18 @@ function localDayKey(value){
  return `${y}-${m}-${day}`;
 }
 
+
+function activeHeatrunForCount(u){
+  const s=stateOf(u)||{};
+  const key=['core_heatrun','booster_1','booster_2','booster_3'].find(k=>s[k+'_started']&&!s[k+'_passed']);
+  if(!key)return false;
+  const started=s[key+'_started_at'];
+  if(!started)return false;
+  const dur=key==='core_heatrun'?(u.ups_type==='STS'?dashboardTimerCfg.sts_heatrun_seconds:dashboardTimerCfg.core_heatrun_seconds):dashboardTimerCfg.booster_heatrun_seconds;
+  const elapsed=Math.floor((Date.now()-new Date(started).getTime())/1000);
+  return Number.isFinite(elapsed) && elapsed<Number(dur||0);
+}
+
 function renderTodayHeader(){
   const head=$('.today-table thead tr');
   if(!head) return;
@@ -122,7 +133,7 @@ function renderToday(){
    const rec=data.u.filter(x=>x.ups_type===t&&localDayKey(x.received_at)===today).length;
    const comp=data.u.filter(x=>x.ups_type===t&&localDayKey(x.completed_at)===today).length;
    const under=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING').length;
-   const heat=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING'&&runningTimedEvent(x)).length;
+   const heat=data.u.filter(x=>x.ups_type===t&&x.status==='UNDER_TESTING'&&activeHeatrunForCount(x)).length;
    const stock=data.u.filter(x=>x.ups_type===t&&x.status==='STOCK').length;
    return `<tr><th>${t}</th><td class="r">${rec}</td><td class="c">${comp}</td><td class="u">${under}</td><td class="h">${heat}</td>${isPublicPortalView()?'':`<td class="s">${stock}</td>`}</tr>`;
  }).join('');
@@ -249,6 +260,7 @@ async function renderWeekly(){
  $('#weeklyGraph').innerHTML=`<div class="weekly-neon-grid tanks-only">${cards}</div>`;
 }
 async function boot(){
+  try{dashboardTimerCfg=await getTimers()}catch{}
   const cached=loadPageCache('dashboard',1800000);
   if(cached){try{data=cached;renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly()}catch{}}
   const qr=new URLSearchParams(location.search).get('qr');
@@ -284,7 +296,8 @@ async function refreshDashboardDynamic(){
 realtimeWatch('dashboard-fast',['tqr_units','tqr_stage_state','tqr_bay_occupancy'],refreshDashboardDynamic,60);
 
 // Slow/static changes (targets, bay master, opening counts) still perform a full reload.
-realtimeWatch('dashboard-static',['tqr_monthly_targets','tqr_month_opening_counts','tqr_bays'],async()=>{
+realtimeWatch('dashboard-static',['tqr_monthly_targets','tqr_month_opening_counts','tqr_bays','tqr_settings'],async()=>{
+  try{dashboardTimerCfg=await getTimers(true)}catch{}
   data=await loadCore();
   savePageCache('dashboard',data);
   renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly();
@@ -304,3 +317,4 @@ startPolling('dashboard',async()=>{try{
     renderKpis();renderPerformance();renderToday();await renderBays();await renderWeekly();
   }
 }catch(e){}},60000);
+window._todayTimerExpiryTicker=window._todayTimerExpiryTicker||setInterval(()=>{try{if(data)renderToday()}catch{}},1000);

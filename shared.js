@@ -5,7 +5,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ym = d => (d || new Date()).toISOString().slice(0,7);
 const nowIso = () => new Date().toISOString();
-const TQR_APP_VERSION = 'v6.14.40';
+const TQR_APP_VERSION = 'v6.14.41';
 
 /* v6.14.22 — secure persistent engineer session + admin role */
 const TQR_LOGIN_KEY='tqr_engineer_portal_session';
@@ -136,7 +136,28 @@ function tqrShowLoggedInChip(row){document.querySelector('.portal-login-chip')?.
 async function tqrValidateSession(saved){const r=await sb.rpc('tqr_validate_engineer_session',{p_session_token:saved.session_token});if(r.error)throw r.error;const row=Array.isArray(r.data)?r.data[0]:r.data;return row?.session_token?row:null}
 function tqrApplyAdminGate(row){const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();if(page!=='admin.html')return;document.documentElement.classList.remove('admin-auth-pending');if(row?.is_admin===true)return;showToast('Admin access only');setTimeout(()=>{const u=new URL('index.html',location.href);u.searchParams.set('view','testing');location.replace(u.toString())},350)}
 function tqrRefreshTopbar(){if(window._tqrActiveTopbar)mountTopbar(window._tqrActiveTopbar)}
-async function tqrValidateSavedLogin(){if(_tqrLoginCheckDone)return;_tqrLoginCheckDone=true;if(!tqrNeedsLogin()){document.documentElement.classList.remove('admin-auth-pending');return}const saved=tqrGetSavedLogin();if(!saved){await tqrShowLogin();return}/* Mobile QR cameras can open while network is still waking up. Use saved session immediately, then validate without destroying it on a transient error. */applyPortalTheme();window._tqrAuthBusy=false;tqrShowLoggedInChip(saved);tqrRefreshTopbar();try{const row=await tqrValidateSession(saved);if(!row){try{localStorage.removeItem(TQR_LOGIN_KEY)}catch{}try{document.cookie='tqr_engineer_portal_session_cookie=; Max-Age=0; Path=/; SameSite=Lax; Secure'}catch{}await tqrShowLogin();return}const current=tqrSaveLogin(row);tqrShowLoggedInChip(current);tqrRefreshTopbar();tqrApplyAdminGate(current)}catch(e){/* keep remembered login on transient mobile/network validation failure */tqrApplyAdminGate(saved)}}
+async function tqrValidateSavedLogin(){
+  if(_tqrLoginCheckDone)return;
+  _tqrLoginCheckDone=true;
+  if(!tqrNeedsLogin()){document.documentElement.classList.remove('admin-auth-pending');return}
+  const saved=tqrGetSavedLogin();
+  if(!saved){await tqrShowLogin();return}
+  // v6.14.41 — remember mobile QR login on this browser/device.
+  // Normal scan/testing pages use the remembered session immediately; server validation
+  // refreshes the role/name when available but never wipes the device login on a transient/null response.
+  applyPortalTheme();window._tqrAuthBusy=false;tqrShowLoggedInChip(saved);tqrRefreshTopbar();
+  try{
+    const row=await tqrValidateSession(saved);
+    if(row?.session_token){
+      const current=tqrSaveLogin(row);tqrShowLoggedInChip(current);tqrRefreshTopbar();tqrApplyAdminGate(current);return;
+    }
+    const page=(location.pathname.split('/').pop()||'').toLowerCase();
+    if(page==='admin.html'){document.documentElement.classList.remove('admin-auth-pending');await tqrShowLogin();return}
+    tqrApplyAdminGate(saved);
+  }catch(e){
+    tqrApplyAdminGate(saved);
+  }
+}
 if((location.pathname.split('/').pop()||'').toLowerCase()==='admin.html')document.documentElement.classList.add('admin-auth-pending');
 window.addEventListener('DOMContentLoaded',()=>setTimeout(tqrValidateSavedLogin,80));
 
@@ -261,14 +282,6 @@ function navHtml(active){
       <span class="portal-view-slider"></span>
     </label>
   </div>
-  <div class="portal-theme-toggle compact" aria-label="Dark or light theme" title="Theme">
-    <span class="theme-icon theme-moon">☾</span>
-    <label class="portal-theme-switch" aria-label="Theme toggle">
-      <input type="checkbox" data-theme-toggle ${getPortalTheme()==='light'?'checked':''}>
-      <span class="portal-theme-slider"></span>
-    </label>
-    <span class="theme-icon theme-sun">☀</span>
-  </div>
   <div class="navright"><span class="live-dot"></span><span class="live-label">Live</span><div class="clockbox"><span id="dateNow"></span><b id="timeNow"></b></div></div>`;
 }
 function mountTopbar(active){
@@ -278,7 +291,6 @@ function mountTopbar(active){
   const e = $('#topbar'); if(!e) return;
   e.innerHTML = navHtml(active);
   bindPortalViewSwitch();
-  bindThemeSwitch();
   const tick = ()=>{
     const d = new Date();
     const date = $('#dateNow'), time = $('#timeNow');
@@ -373,7 +385,8 @@ function mountScanHeader(){
   applyPortalViewClass();
   if(isPublicPortalView()){ setPortalView('testing'); return; }
   const e=$('#topbar'); if(!e)return;
-  e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="portal-theme-toggle compact" aria-label="Dark or light theme" title="Theme"><span class="theme-icon theme-moon">☾</span><label class="portal-theme-switch"><input type="checkbox" data-theme-toggle ${getPortalTheme()==='light'?'checked':''}><span class="portal-theme-slider"></span></label><span class="theme-icon theme-sun">☀</span></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`; bindThemeSwitch(); mountVersionBadge();
+  e.innerHTML=`<div class="brand brand-image"><img src="trinergy-brand-banner.png" alt="TRINERGY QR Testing Tracker"></div><div class="scan-mini-nav"><a class="navtab" href="index.html">← Dashboard</a><a class="navtab" href="active.html">Active UPS</a></div><div class="navright"><span class="live-dot"></span><span class="live-label">Live</span></div>`;
+  mountVersionBadge();
 }
 let _rtTimers={};
 window._tqrRealtimeHealth=window._tqrRealtimeHealth||{};
